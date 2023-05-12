@@ -9,6 +9,9 @@ namespace MM2Randomizer.Data
     [Serializable]
     public class FtSong
     {
+        [XmlElement(DataType = "boolean")]
+        public Boolean? Enabled { get; set; } = null;
+
         [XmlElement(DataType = "int")]
         public Int32 Number { get; set; } = 0;
 

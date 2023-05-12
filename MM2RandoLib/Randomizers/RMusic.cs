@@ -398,6 +398,7 @@ namespace MM2Randomizer.Randomizers
         public readonly FtXmlModule ModuleInfo;
         public readonly FtXmlSong? Info;
 
+        public readonly Boolean Enabled;
         public readonly Int32 Number;
         public readonly String Title;
         public readonly Boolean SwapSquareChans;
@@ -414,8 +415,10 @@ namespace MM2Randomizer.Randomizers
                 // in_SongIdx is the index in in_Mod.Songs, NOT the index in the FTM itself
                 Info = in_Mod.Songs[in_SongIdx];
 
+                Enabled = Info.Enabled is not null ? (bool)Info.Enabled : in_Mod.Enabled;
                 Number = Info.Number;
                 Title = Info.Title;
+                Uses = (Info.Uses is not null) ? Info.Uses : in_Mod.Uses;
                 Usage = (Info.Usage is not null) ? Info.Usage : in_Mod.Usage;
                 SwapSquareChans = (Info.SwapSquareChans is not null) ? (bool)Info.SwapSquareChans : in_Mod.SwapSquareChans;
             }
@@ -423,9 +426,11 @@ namespace MM2Randomizer.Randomizers
             {
                 Info = null;
 
+                Enabled = in_Mod.Enabled;
                 Number = 0;
                 Title = in_Mod.Title;
                 Usage = in_Mod.Usage;
+                Uses = in_Mod.Uses;
                 SwapSquareChans = in_Mod.SwapSquareChans;
             }
         }
@@ -529,9 +534,11 @@ namespace MM2Randomizer.Randomizers
                 for (int i = 0; i < Math.Max(xmlMod.Songs.Count, 1); i++)
                 {
                     FtSongEntry song = new FtSongEntry(xmlMod, i);
-
-                    ftmSongs.Add(song);
-                    songs.Add(song);
+                    if (song.Enabled)
+                    {
+                        ftmSongs.Add(song);
+                        songs.Add(song);
+                    }
                 }
             }
 
@@ -678,9 +685,9 @@ namespace MM2Randomizer.Randomizers
                 return null;
 
             var ftmsBySize = new List<FtXmlModule>(ftmsSongs.Keys);
-            ftmsBySize.Sort((a, b) => -a.Size.CompareTo(b.Size));
+            ftmsBySize.Sort((a, b) => ((a is not null && b is not null) ? -a.Size.CompareTo(b.Size) : 0));
 
-            c2Songs.Sort((a, b) => -a.TotalLength.CompareTo(b.TotalLength));
+            c2Songs.Sort((a, b) => ((a is not null && b is not null) ? -a.TotalLength.CompareTo(b.TotalLength) : 0));
 
             // Place the songs in each bank
             var banksSongs = new Dictionary<int, List<ISong>>();
@@ -1029,7 +1036,7 @@ namespace MM2Randomizer.Randomizers
                 {
                     RebaseC2Song(song, 0, 0x8001);
                 }
-                catch (Exception e)
+                catch
                 {
                     Debug.Assert(false, $"ERROR: Rebase failed on '{song.SongName}'");
                 }
@@ -1044,7 +1051,7 @@ namespace MM2Randomizer.Randomizers
                 {
                     FtModule ftm = new FtModule(xmlMod.TrackData, xmlMod.StartAddress);
                 }
-                catch (Exception e)
+                catch
                 {
                     System.Diagnostics.Debug.Assert(false, $"ERROR: Rebase failed on FTM '{xmlMod.Title}'");
                 }
