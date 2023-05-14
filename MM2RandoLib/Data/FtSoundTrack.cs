@@ -23,22 +23,12 @@ namespace MM2Randomizer.Data
 
         [XmlArray(ElementName = "Uses")]
         [XmlArrayItem(ElementName = "Usage")]
-        public String[]? Uses { get; set; } = null;
+        public HashSet<String> Uses { get; set; } = new();
 
         [XmlIgnore]
-        public ESoundTrackUsage? Usage
+        public ESoundTrackUsage Usage
         {
-            get
-            {
-                if (Uses is null)
-                    return null;
-
-                ESoundTrackUsage usage = (ESoundTrackUsage)0;
-                foreach (String str in Uses)
-                    usage |= Enum.Parse<ESoundTrackUsage>(str);
-
-                return usage;
-            }
+            get { return SoundTrackUsage.FromStrings(Uses); }
         }
     }
 
@@ -59,22 +49,12 @@ namespace MM2Randomizer.Data
 
         [XmlArray(ElementName = "Uses")]
         [XmlArrayItem(ElementName = "Usage")]
-        public String[]? Uses { get; set; } = null;
+        public HashSet<String> Uses { get; set; } = new();
 
         [XmlIgnore]
-        public ESoundTrackUsage? Usage
+        public ESoundTrackUsage Usage
         {
-            get
-            {
-                if (Uses is null)
-                    return null;
-
-                ESoundTrackUsage usage = (ESoundTrackUsage)0;
-                foreach (String str in Uses)
-                    usage |= Enum.Parse<ESoundTrackUsage>(str);
-
-                return usage;
-            }
+            get { return SoundTrackUsage.FromStrings(Uses); }
         }
 
         [XmlElement("StartAddress")]

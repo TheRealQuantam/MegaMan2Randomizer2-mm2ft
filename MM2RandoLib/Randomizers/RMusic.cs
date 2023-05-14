@@ -25,8 +25,8 @@ namespace MM2Randomizer.Randomizers
     {
         ESoundEngine Engine { get; }
 
-        ESoundTrackUsage? Usage { get; }
-        IList<String>? Uses { get; }
+        ESoundTrackUsage Usage { get; }
+        ISet<String> Uses { get; }
 
         Int32 Bank { get; set; }
         Int32 Index { get; set; }
@@ -39,20 +39,10 @@ namespace MM2Randomizer.Randomizers
             this.SoundTrack = in_SoundTrack;
             this.OriginalStartAddress = in_OriginalStartAddress;
             this.SongName = in_SongName;
-
-            if (in_SoundTrack is not null)
-            {
-                this.Usage = in_SoundTrack.Usage;
-                this.Uses = in_SoundTrack.Uses;
-            }
-            else
-            {
-                this.Usage = null;
-                this.Uses = null;
-            }
+            this.Uses = (in_SoundTrack is not null) ? in_SoundTrack.Uses : new();
 
             // Parse song bytes from hex String
-            List<Byte> songBytes = new List<Byte>();
+            List<Byte> songBytes = new();
             while (in_SongBytesStr.Length > 0)
             {
                 String twoCharByte = in_SongBytesStr.Substring(0, 2);
@@ -140,257 +130,22 @@ namespace MM2Randomizer.Randomizers
 
         public ESoundEngine Engine { get { return ESoundEngine.C2; } }
 
-        public ESoundTrackUsage? Usage { get; set; }
-        public IList<String>? Uses { get; set; }
-    }
-
-    public class FtModule
-    {
-        public class Instrument
+        public ISet<String> Uses { get; set; }
+        public ESoundTrackUsage Usage
         {
-            public int Flags = 0;
-            public int?[] SeqAddrs = new int?[5];
-
-            public Instrument(BinaryBuffer buffer)
-            {
-                Flags = buffer.ReadByte();
-
-                byte chanMask = buffer.ReadByte();
-                for (int i = 0; i < SeqAddrs.Length; i++)
-                {
-                    SeqAddrs[i] = (chanMask & 1) != 0 ? buffer.ReadUInt16() : null;
-                    chanMask >>= 1;
-                }
-            }
-        }
-
-        public class Song
-        {
-            public int BaseAddr;
-
-            public int FrameListAddr;
-
-            public int PatternLength;
-            public int Speed;
-            public int Tempo;
-            public int GroovePos;
-            public int InitialBank;
-
-            public List<int> FrameAddrs;
-            public List<int[]> FramePatAddrs;
-
-            public Song(BinaryBuffer buffer, int baseAddr, int numChans)
-            {
-                BaseAddr = baseAddr;
-
-                FrameListAddr = buffer.ReadUInt16();
-
-                int numFrames = buffer.ReadByte();
-                PatternLength = buffer.ReadByte();
-                Speed = buffer.ReadByte();
-                Tempo = buffer.ReadByte();
-                GroovePos = buffer.ReadByte();
-                InitialBank = buffer.ReadByte();
-
-                buffer.Seek(FrameListAddr - baseAddr);
-                UInt16[] frameAddrs = new UInt16[numFrames];
-                buffer.Read(frameAddrs, 0, numFrames);
-                FrameAddrs = new List<int>(from x in frameAddrs select (int)x);
-
-                FramePatAddrs = new List<int[]>();
-                UInt16[] frame = new UInt16[numChans];
-                foreach (int frameAddr in FrameAddrs)
-                {
-                    buffer.Seek(frameAddr - baseAddr);
-
-                    buffer.Read(frame, 0, numChans);
-                    FramePatAddrs.Add(Array.ConvertAll<UInt16, int>(frame, x => (int)x));
-                }
-            }
-        }
-
-        private int baseAddr;
-        private BinaryBuffer buffer;
-
-        private int songListAddr;
-        private int instrListAddr;
-        private int sampleMapAddr;
-        private int samplesAddr;
-        private int groovesAddr;
-
-        private byte flags;
-
-        private int ntscSpeed;
-        private int palSpeed;
-
-        private List<int> songAddrs;
-        private List<int> instrAddrs;
-
-        private List<Song> songs;
-        private List<Instrument> instrs;
-
-        public FtModule(IList<Byte> in_Buffer, Int32 in_BaseAddress = 0, Int32 in_NumChannels = 5)
-        {
-            buffer = new BinaryBuffer(in_Buffer);
-            baseAddr = in_BaseAddress;
-
-            songListAddr = buffer.ReadUInt16();
-            instrListAddr = buffer.ReadUInt16();
-            sampleMapAddr = buffer.ReadUInt16();
-            samplesAddr = buffer.ReadUInt16();
-            groovesAddr = buffer.ReadUInt16();
-
-            flags = buffer.ReadByte();
-
-            ntscSpeed = buffer.ReadUInt16();
-            palSpeed = buffer.ReadUInt16();
-
-            // Parse instruments
-            instrAddrs = new List<int>();
-            instrs = new List<Instrument>();
-            if (instrListAddr != sampleMapAddr)
-            {
-                buffer.Seek(instrListAddr - in_BaseAddress);
-
-                int firstInstrAddr = buffer.ReadUInt16(false, false);
-                UInt16[] instrAddrs16 = new ushort[(firstInstrAddr - instrListAddr) / 2];
-                buffer.Read(instrAddrs16, 0, instrAddrs16.Length);
-                instrAddrs = new List<int>(from x in instrAddrs16 select (int)x);
-
-                foreach (int instrAddr in instrAddrs)
-                {
-                    buffer.Seek(instrAddr - in_BaseAddress);
-                    instrs.Add(new Instrument(buffer));
-                }
-            }
-
-            // Parse songs
-            songAddrs = new List<int>();
-            songs = new List<Song>();
-            if (songListAddr != instrListAddr)
-            {
-                buffer.Seek(songListAddr - in_BaseAddress);
-
-                int firstSongAddr = buffer.ReadUInt16(false, false);
-                for (int i = 0; i < (firstSongAddr - songListAddr) / 2; i++)
-                    songAddrs.Add(buffer.ReadUInt16());
-
-                songs = new List<Song>();
-                foreach (int songAddr in songAddrs)
-                {
-                    buffer.Seek(songAddr - in_BaseAddress);
-                    songs.Add(new Song(buffer, in_BaseAddress, in_NumChannels));
-                }
-            }
-        }
-
-        public void Rebase(Int32 in_NewAddress)
-        {
-            int addrDelta = in_NewAddress - baseAddr;
-
-            // Update the instruments
-            for (int instrIdx = 0; instrIdx < instrAddrs.Count; instrIdx++)
-            {
-                buffer.Seek(instrAddrs[instrIdx] + 2 - baseAddr);
-
-                IList<int?> seqAddrs = instrs[instrIdx].SeqAddrs;
-                for (int seqIdx = 0; seqIdx < seqAddrs.Count; seqIdx++)
-                {
-                    int? seqAddr = seqAddrs[seqIdx];
-                    if (seqAddr is not null)
-                    {
-                        seqAddrs[seqIdx] = (seqAddr += addrDelta);
-                        buffer.Write((UInt16)seqAddr);
-                    }
-                }
-
-                instrAddrs[instrIdx] += addrDelta;
-            }
-
-            buffer.Seek(instrListAddr - baseAddr);
-            buffer.Write((from addr in instrAddrs select (UInt16)addr).ToList(), 0, instrAddrs.Count);
-
-            // Update the songs
-            for (int songIdx = 0; songIdx < songAddrs.Count; songIdx++)
-            {
-                int songAddr = songAddrs[songIdx];
-                Song song = songs[songIdx];
-
-                for (int frameIdx = 0; frameIdx < song.FrameAddrs.Count; frameIdx++)
-                {
-                    int frameAddr = song.FrameAddrs[frameIdx];
-                    int[] patAddrs = song.FramePatAddrs[frameIdx];
-
-                    for (int chanIdx = 0; chanIdx < patAddrs.Length; chanIdx++)
-                        patAddrs[chanIdx] += addrDelta;
-
-                    buffer.Seek(frameAddr - baseAddr);
-                    buffer.Write((from addr in patAddrs select (UInt16)addr).ToList(), 0, patAddrs.Length);
-
-                    song.FrameAddrs[frameIdx] = frameAddr + addrDelta;
-                }
-
-                buffer.Seek(song.FrameListAddr);
-                buffer.Write((from addr in song.FrameAddrs select (UInt16)addr).ToList(), 0, song.FrameAddrs.Count);
-
-                song.FrameListAddr += addrDelta;
-                buffer.Seek(songAddr - baseAddr);
-                buffer.Write((UInt16)song.FrameListAddr);
-
-                song.BaseAddr += addrDelta;
-
-                songAddrs[songIdx] += addrDelta;
-            }
-
-            buffer.Seek(songListAddr - baseAddr);
-            buffer.Write((from addr in songAddrs select (UInt16)addr).ToList(), 0, songAddrs.Count);
-
-            // Update the header
-            songListAddr += addrDelta;
-            instrListAddr += addrDelta;
-            sampleMapAddr += addrDelta;
-            samplesAddr += addrDelta;
-            groovesAddr += addrDelta;
-
-            buffer.Seek(0);
-
-            buffer.Write((UInt16)songListAddr);
-            buffer.Write((UInt16)instrListAddr);
-            buffer.Write((UInt16)sampleMapAddr);
-            buffer.Write((UInt16)samplesAddr);
-            buffer.Write((UInt16)groovesAddr);
-
-            baseAddr = in_NewAddress;
-        }
-
-        public void SwapSquareChans(int songIdx)
-        {
-            Song song = songs[songIdx];
-            var doneFrameAddrs = new HashSet<int>();
-
-            for (int frameIdx = 0; frameIdx < song.FrameAddrs.Count; frameIdx++)
-            {
-                int frameAddr = song.FrameAddrs[frameIdx];
-                if (!doneFrameAddrs.Add(frameAddr))
-                    continue;
-
-                int[] frame = song.FramePatAddrs[frameIdx];
-                int square1Addr = frame[0];
-                frame[0] = frame[1];
-                frame[1] = square1Addr;
-
-                buffer.Seek(frameAddr - baseAddr);
-                buffer.Write((from addr in frame select (UInt16)addr).ToList(), 0, 2);
-            }
+            get { return SoundTrackUsage.FromStrings(Uses); }
         }
     }
 
-    public class FtSongEntry : ISong
+    public class FtSong : ISong
     {
         public ESoundEngine Engine { get { return ESoundEngine.Ft; } }
 
-        public ESoundTrackUsage? Usage { get; private set; }
-        public IList<String>? Uses { get; private set; }
+        public ISet<String> Uses { get; private set; }
+        public ESoundTrackUsage Usage
+        {
+            get { return SoundTrackUsage.FromStrings(Uses); }
+        }
 
         public Int32 Bank { get; set; }
         public Int32 Index { get; set; }
@@ -406,7 +161,7 @@ namespace MM2Randomizer.Randomizers
         public String Author { get { return ModuleInfo.Author; } }
         public Byte[] TrackData { get { return ModuleInfo.TrackData; } }
 
-        public FtSongEntry(FtXmlModule in_Mod, Int32 in_SongIdx)
+        public FtSong(FtXmlModule in_Mod, Int32 in_SongIdx)
         {
             ModuleInfo = in_Mod;
             
@@ -418,8 +173,7 @@ namespace MM2Randomizer.Randomizers
                 Enabled = Info.Enabled is not null ? (bool)Info.Enabled : in_Mod.Enabled;
                 Number = Info.Number;
                 Title = Info.Title;
-                Uses = (Info.Uses is not null) ? Info.Uses : in_Mod.Uses;
-                Usage = (Info.Usage is not null) ? Info.Usage : in_Mod.Usage;
+                Uses = (Info.Uses.Count > 0) ? Info.Uses : in_Mod.Uses;
                 SwapSquareChans = (Info.SwapSquareChans is not null) ? (bool)Info.SwapSquareChans : in_Mod.SwapSquareChans;
             }
             else
@@ -429,7 +183,6 @@ namespace MM2Randomizer.Randomizers
                 Enabled = in_Mod.Enabled;
                 Number = 0;
                 Title = in_Mod.Title;
-                Usage = in_Mod.Usage;
                 Uses = in_Mod.Uses;
                 SwapSquareChans = in_Mod.SwapSquareChans;
             }
@@ -492,10 +245,17 @@ namespace MM2Randomizer.Randomizers
         /// </summary>
         private const Int32 LastFreeBank = 0x3d;
 
-        private String[] DefaultUses = new string[] { "Stage", "Credits" };
-        private ESoundTrackUsage DefaultUsage = ESoundTrackUsage.Stage | ESoundTrackUsage.Credits;
+        /// <summary>
+        /// The address to place FTMs in each bank.
+        /// </summary>
+        private const Int32 FtmBaseAddress = 0xa000;
 
-        private StringBuilder debug = new StringBuilder();
+        /// <summary>
+        /// The default uses for tracks that have no uses specified on the song or module.
+        /// </summary>
+        private HashSet<String> DefaultUses = new(){ "Stage", "Credits" };
+
+        private StringBuilder debug = new();
 
         public RMusic()
         {
@@ -526,14 +286,14 @@ namespace MM2Randomizer.Randomizers
                  select new C2Song(soundTrack.Title, Int32.Parse(soundTrack.StartAddress, NumberStyles.HexNumber), soundTrack.TrackData, soundTrack)).ToList<ISong>();
 
             FtModuleSet moduleSet = Properties.Resources.FtSoundTrackConfiguration.Deserialize<FtModuleSet>();
-            var ftmSongs = new List<FtSongEntry>();
+            List<FtSong> ftmSongs = new();
             foreach (FtXmlModule xmlMod in moduleSet)
             {
                 Debug.Assert(xmlMod.Size <= BankSize, $"FTM {xmlMod.Title} is larger than a bank");
                 
                 for (int i = 0; i < Math.Max(xmlMod.Songs.Count, 1); i++)
                 {
-                    FtSongEntry song = new FtSongEntry(xmlMod, i);
+                    FtSong song = new(xmlMod, i);
                     if (song.Enabled)
                     {
                         ftmSongs.Add(song);
@@ -545,14 +305,14 @@ namespace MM2Randomizer.Randomizers
             debug.AppendLine($"{songs.Count} C2 and {ftmSongs.Count} FT songs loaded.");
 
             // Create the usage type lists of songs
-            var usesSongIdcs = new Dictionary<String, List<Int32>>();
+            Dictionary<String, List<Int32>> usesSongIdcs = new();
             foreach (String name in Enum.GetNames(typeof(ESoundTrackUsage)))
                 usesSongIdcs[name] = new List<Int32>();
 
             for (Int32 songIdx = 0; songIdx < songs.Count; songIdx++)
             {
                 ISong song = songs[songIdx];
-                IList<String> uses = (song.Uses is not null) ? song.Uses : DefaultUses;
+                ISet<String> uses = (song.Uses.Count > 0) ? song.Uses : DefaultUses;
                 foreach (String useStr in uses)
                     usesSongIdcs[useStr].Add(songIdx);
             }
@@ -563,11 +323,11 @@ namespace MM2Randomizer.Randomizers
             {
                 selSongMap = SelectSongs(in_Seed, usesSongIdcs);
 
-                var selSongIdcs = new HashSet<int>(selSongMap.Values);
+                HashSet<int> selSongIdcs = new(selSongMap.Values);
                 var banksSongs = PlaceSongsInBanks((from idx in selSongIdcs select songs[idx]).ToList());
                 if (banksSongs is not null)
                     ImportSongs(in_Patch, in_Seed, banksSongs);
-                else
+                else 
                     selSongMap = null;
             }
 
@@ -592,7 +352,7 @@ namespace MM2Randomizer.Randomizers
                 }
                 else
                 {
-                    FtSongEntry song = (FtSongEntry)isong;
+                    FtSong song = (FtSong)isong;
 
                     bankIdx = ~song.Bank;
                     tblMusicIdx = song.Number;
@@ -613,15 +373,12 @@ namespace MM2Randomizer.Randomizers
 
             Boolean testRebase = false;
             if (testRebase)
-            {
-                //TestRebaseSongs(songs);
-                TestRebaseFtms(moduleSet.Modules);
-            }
+                TestRebaseSongs(songs);
         }
 
         private Dictionary<EMusicID, Int32> SelectSongs(ISeed in_Seed, IReadOnlyDictionary<String, List<Int32>> in_UsesSongIdcs)
         {
-            var selSongMap = new Dictionary<EMusicID, int>();
+            Dictionary<EMusicID, int> selSongMap = new();
 
             foreach (String usageStr in in_UsesSongIdcs.Keys)
             {
@@ -656,20 +413,20 @@ namespace MM2Randomizer.Randomizers
         private Dictionary<int, List<ISong>>? PlaceSongsInBanks(IReadOnlyList<ISong> in_Songs)
         {
             // Separate FT and C2 songs, as the former must be at the start of banks
-            var ftmsSongs = new Dictionary<FtXmlModule, List<FtSongEntry>>(ReferenceEqualityComparer.Instance);
-            var ftSongs = new List<FtSongEntry>();
-            var c2Songs = new List<C2Song?>();
+            Dictionary<FtXmlModule, List<FtSong>> ftmsSongs = new(ReferenceEqualityComparer.Instance);
+            List<FtSong> ftSongs = new();
+            List<C2Song?> c2Songs = new();
             foreach (ISong isong in in_Songs)
             {
                 if (isong.Engine == ESoundEngine.Ft)
                 {
-                    FtSongEntry song = (FtSongEntry)isong;
+                    FtSong song = (FtSong)isong;
                     FtXmlModule mod = song.ModuleInfo;
 
-                    List<FtSongEntry>? ftmSongs = null;
+                    List<FtSong>? ftmSongs = null;
                     if (!ftmsSongs.TryGetValue(mod, out ftmSongs))
                     {
-                        ftmSongs = new List<FtSongEntry>();
+                        ftmSongs = new List<FtSong>();
                         ftmsSongs[mod] = ftmSongs;
                     }
                     
@@ -684,19 +441,19 @@ namespace MM2Randomizer.Randomizers
                 // Not enough banks for all the FTMs
                 return null;
 
-            var ftmsBySize = new List<FtXmlModule>(ftmsSongs.Keys);
+            List<FtXmlModule> ftmsBySize = new(ftmsSongs.Keys);
             ftmsBySize.Sort((a, b) => ((a is not null && b is not null) ? -a.Size.CompareTo(b.Size) : 0));
 
             c2Songs.Sort((a, b) => ((a is not null && b is not null) ? -a.TotalLength.CompareTo(b.TotalLength) : 0));
 
             // Place the songs in each bank
-            var banksSongs = new Dictionary<int, List<ISong>>();
+            Dictionary<int, List<ISong>> banksSongs = new();
             int ftModIdx = 0;
             int numTracks = c2Songs.Count + ftmsBySize.Count;
             int songsLeft = numTracks;
             for (Int32 bankIdx = FirstFreeBank; bankIdx <= LastFreeBank && songsLeft > 0; bankIdx++)
             {
-                List<ISong> bankSongs = banksSongs[bankIdx] = new List<ISong>();
+                List<ISong> bankSongs = banksSongs[bankIdx] = new();
 
                 // Place an FTM (if any) at the start of the bank
                 Int32 sizeLeft = BankSize;
@@ -750,19 +507,19 @@ namespace MM2Randomizer.Randomizers
 
                 // Import the FTM if any
                 FtXmlModule? modInfo = null;
-                FtModule? ftm = null;
+                FtmBinary? ftm = null;
                 for (; slotIdx < bankSongs.Count; slotIdx++)
                 {
                     ISong isong = bankSongs[slotIdx];
                     if (isong.Engine != ESoundEngine.Ft)
                         break;
 
-                    FtSongEntry song = (FtSongEntry)isong;
+                    FtSong song = (FtSong)isong;
 
                     if (slotIdx == 0)
                     {
                         modInfo = song.ModuleInfo;
-                        ftm = new FtModule(song.TrackData, modInfo.StartAddress);
+                        ftm = new FtmBinary(song.TrackData, modInfo.StartAddress);
                     }
 
                     if (song.SwapSquareChans)
@@ -779,7 +536,7 @@ namespace MM2Randomizer.Randomizers
                     // Import the module
                     Debug.Assert(ftm is not null);
 
-                    int songAddr = (songStartRom - 0x10) % BankSize + 0xa000;
+                    int songAddr = (songStartRom - 0x10) % BankSize + FtmBaseAddress;
 
                     ftm.Rebase(songAddr);
 
@@ -794,7 +551,7 @@ namespace MM2Randomizer.Randomizers
                 for (; slotIdx < bankSongs.Count; slotIdx++)
                 {
                     C2Song song = (C2Song)bankSongs[slotIdx];
-                    int songAddr = (songStartRom - 0x10) % BankSize + 0xa000;
+                    int songAddr = (songStartRom - 0x10) % BankSize + FtmBaseAddress;
 
                     RebaseC2Song(song, bankIdx, songAddr);
 
@@ -1028,35 +785,43 @@ namespace MM2Randomizer.Randomizers
             }
         }
 
-        private void TestRebaseSongs(IEnumerable<C2Song> in_Songs)
+        private void TestRebaseSongs(IEnumerable<ISong> in_Songs)
         {
-            foreach (C2Song song in in_Songs)
+            HashSet<FtXmlModule> ftmsDone = new(ReferenceEqualityComparer.Instance);
+
+            foreach (ISong isong in in_Songs)
             {
-                try 
+                if (isong.Engine == ESoundEngine.Ft)
                 {
-                    RebaseC2Song(song, 0, 0x8001);
+                    FtSong song = (FtSong)isong;
+                    FtXmlModule modInfo = song.ModuleInfo;
+
+                    if (!ftmsDone.Add(modInfo))
+                        continue;
+
+                    try
+                    {
+                        FtmBinary mod = new(modInfo.TrackData, modInfo.StartAddress);
+                        mod.Rebase(FtmBaseAddress);
+                    }
+                    catch
+                    {
+                        System.Diagnostics.Debug.Assert(false, $"ERROR: Rebase failed on FTM '{modInfo.Title}'");
+                    }
                 }
-                catch
+                else
                 {
-                    Debug.Assert(false, $"ERROR: Rebase failed on '{song.SongName}'");
+                    C2Song song = (C2Song)isong;
+                    try
+                    {
+                        RebaseC2Song(song, 0, 0x8001);
+                    }
+                    catch
+                    {
+                        Debug.Assert(false, $"ERROR: Rebase failed on '{song.SongName}'");
+                    }
                 }
             }
-        }
-
-        private void TestRebaseFtms(IEnumerable<FtXmlModule> in_Mods)
-        {
-            foreach (FtXmlModule xmlMod in in_Mods)
-            {
-                try
-                {
-                    FtModule ftm = new FtModule(xmlMod.TrackData, xmlMod.StartAddress);
-                }
-                catch
-                {
-                    System.Diagnostics.Debug.Assert(false, $"ERROR: Rebase failed on FTM '{xmlMod.Title}'");
-                }
-            }
-
         }
     }
 }
