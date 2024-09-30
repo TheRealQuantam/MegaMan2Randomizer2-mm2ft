@@ -1,6 +1,15 @@
 ﻿using System;
+using System.Collections.Generic;
 using MM2Randomizer.Random;
+using MM2RandoLib.Settings.Options;
 using MM2Randomizer.Settings.OptionGroups;
+using System.Diagnostics;
+using System.Reflection;
+using System.Linq;
+using System.Dynamic;
+using System.ComponentModel;
+using System.Linq.Expressions;
+using System.Diagnostics.CodeAnalysis;
 
 namespace MM2Randomizer.Settings
 {
@@ -12,6 +21,7 @@ namespace MM2Randomizer.Settings
 
         public RandomizationSettings()
         {
+            BuildOptionsMetadata();
         }
 
 
@@ -23,107 +33,71 @@ namespace MM2Randomizer.Settings
 
         public String RomSourcePath { get; set; } = String.Empty;
 
+        public SettingsPreset? SettingsPreset 
+        {
+            get => _preset; 
+            set
+            {
+                HashSet<IOption> optsSet = new(ReferenceEqualityComparer.Instance);
+                if (value is not null)
+                {
+                    foreach (var opt in value.Options)
+                    {
+                        opt.Option.OverrideRandomize = opt.Randomize;
+                        opt.Option.OverrideValue = opt.Value;
+                        opt.Option.Override = true;
 
-        //
-        // Flag Options
-        //
+                        optsSet.Add(opt.Option);
+                    }
+                }
 
-        public Boolean TournamentMode { get; set; }
+                foreach (var opt in Options.Except<IOption>(
+                    optsSet, ReferenceEqualityComparer.Instance))
+                    opt.Override = false;
 
-        public Boolean TournamentMode2 { get; set; }
+                _preset = value;
+            }
+        }
+        SettingsPreset? _preset = null;
 
         public Boolean CreateLogFile { get; set; }
 
+
+        public bool IsTournament => !string.IsNullOrEmpty(
+            _preset?.TournamentTitleScreenString);
 
         //
         // Option Categories
         //
 
-        public GameplayOptions GameplayOption { get; } = new GameplayOptions();
+        public GameplayOptions GameplayOptions { get; } = new();
+        public SpriteOptions SpriteOptions { get; } = new();
+        public ChargingSpeedOptions ChargingSpeedOptions { get; } = new();
+        public QualityOfLifeOptions QualityOfLifeOptions { get; } = new();
+        public CosmeticOptions CosmeticOptions { get; } = new();
 
-        public ChargingSpeedOptions ChargingSpeedOption { get; } = new ChargingSpeedOptions();
+        public IReadOnlyList<IOption> Options => opts;
+        public IReadOnlyDictionary<string, IOption> OptionsByPath => optsByPath;
+        public IReadOnlyDictionary<string, IReadOnlyList<IOption>> OptionsByGroup => optsByGroup;
 
-        public CosmeticOptions CosmeticOption { get; } = new CosmeticOptions();
-
-        public SpriteOptions SpriteOption { get; } = new SpriteOptions();
-
-        public QualityOfLifeOptions QualityOfLifeOption { get; } = new QualityOfLifeOptions();
-
+        readonly List<IOption> opts = new();
+        readonly Dictionary<string, IOption> optsByPath = new();
+        readonly Dictionary<string, IReadOnlyList<IOption>> optsByGroup = new();
 
         //
         // Public Methods
         //
 
-        public dynamic ActualizeBehaviorSettings(ISeed in_Seed)
+        public void ActualizeBehaviorSettings(ISeed in_Seed)
         {
-            // TODO: This can be simplified with an ExpandoObject
-
-            return new
-            {
-                GameplayOption = new
-                {
-                    BurstChaserMode = this.GameplayOption.BurstChaserMode.NextValue(in_Seed),
-                    FasterCutsceneText = this.GameplayOption.FasterCutsceneText.NextValue(in_Seed),
-                    HideStageNames = this.GameplayOption.HideStageNames.NextValue(in_Seed),
-                    RandomizeBossWeaknesses = this.GameplayOption.RandomizeBossWeaknesses.NextValue(in_Seed),
-                    RandomizeEnemySpawns = this.GameplayOption.RandomizeEnemySpawns.NextValue(in_Seed),
-                    RandomizeEnemyWeaknesses = this.GameplayOption.RandomizeEnemyWeaknesses.NextValue(in_Seed),
-                    RandomizeFalseFloors = this.GameplayOption.RandomizeFalseFloors.NextValue(in_Seed),
-                    RandomizeRefightTeleporters = this.GameplayOption.RandomizeRefightTeleporters.NextValue(in_Seed),
-                    RandomizeRobotMasterBehavior = this.GameplayOption.RandomizeRobotMasterBehavior.NextValue(in_Seed),
-                    RandomizeRobotMasterLocations = this.GameplayOption.RandomizeRobotMasterLocations.NextValue(in_Seed),
-                    RandomizeRobotMasterStageSelection = this.GameplayOption.RandomizeRobotMasterStageSelection.NextValue(in_Seed),
-                    RandomizeSpecialItemLocations = this.GameplayOption.RandomizeSpecialItemLocations.NextValue(in_Seed),
-                    RandomizeSpecialWeaponBehavior = this.GameplayOption.RandomizeSpecialWeaponBehavior.NextValue(in_Seed),
-                    RandomizeSpecialWeaponReward = this.GameplayOption.RandomizeSpecialWeaponReward.NextValue(in_Seed),
-                    MercilessMode = this.GameplayOption.MercilessMode.NextValue(in_Seed),
-                },
-                ChargingSpeedOption = new
-                {
-                    CastleBossEnergy = this.ChargingSpeedOption.CastleBossEnergy.NextValue(in_Seed),
-                    EnergyTank = this.ChargingSpeedOption.EnergyTank.NextValue(in_Seed),
-                    HitPoints = this.ChargingSpeedOption.HitPoints.NextValue(in_Seed),
-                    RobotMasterEnergy = this.ChargingSpeedOption.RobotMasterEnergy.NextValue(in_Seed),
-                    WeaponEnergy = this.ChargingSpeedOption.WeaponEnergy.NextValue(in_Seed),
-                },
-                SpriteOption = new
-                {
-                    RandomizeBossSprites = this.SpriteOption.RandomizeBossSprites.NextValue(in_Seed),
-                    RandomizeEnemySprites = this.SpriteOption.RandomizeEnemySprites.NextValue(in_Seed),
-                    RandomizeEnvironmentSprites = this.SpriteOption.RandomizeEnvironmentSprites.NextValue(in_Seed),
-                    RandomizeItemPickupSprites = this.SpriteOption.RandomizeItemPickupSprites.NextValue(in_Seed),
-                    RandomizeSpecialWeaponSprites = this.SpriteOption.RandomizeSpecialWeaponSprites.NextValue(in_Seed),
-                },
-                QualityOfLifeOption = new
-                {
-                    DisableWaterfall = this.QualityOfLifeOption.DisableWaterfall.NextValue(in_Seed),
-                    EnableLeftwardWallEjection = this.QualityOfLifeOption.EnableLeftwardWallEjection.NextValue(in_Seed),
-                    DisableFlashingEffects = this.QualityOfLifeOption.DisableFlashingEffects.NextValue(in_Seed),
-                    EnableUnderwaterLagReduction = this.QualityOfLifeOption.EnableUnderwaterLagReduction.NextValue(in_Seed),
-                    DisablePauseLock = this.QualityOfLifeOption.DisablePauseLock.NextValue(in_Seed),
-                    EnableBirdEggFix = this.QualityOfLifeOption.EnableBirdEggFix.NextValue(in_Seed),
-                },
-            };
+            foreach (var opt in opts.Where(x => x.Info is not null && !x.Info.IsCosmetic))
+                opt.Actualize(in_Seed);
         }
 
-        public dynamic ActualizeCosmeticSettings(ISeed in_Seed)
+        public void ActualizeCosmeticSettings(ISeed in_Seed)
         {
-            // TODO: This can be simplified with an ExpandoObject
-
-            return new
-            {
-                CosmeticOption = new
-                {
-                    Font = this.CosmeticOption.Font.NextValue(in_Seed),
-                    HudElement = this.CosmeticOption.HudElement.NextValue(in_Seed),
-                    PlayerSprite = this.CosmeticOption.PlayerSprite.NextValue(in_Seed),
-                    RandomizeColorPalettes = this.CosmeticOption.RandomizeColorPalettes.NextValue(in_Seed),
-                    RandomizeInGameText = this.CosmeticOption.RandomizeInGameText.NextValue(in_Seed),
-                    RandomizeMusicTracks = this.CosmeticOption.RandomizeMusicTracks.NextValue(in_Seed),
-                    OmitUnsafeMusicTracks = this.CosmeticOption.OmitUnsafeMusicTracks.NextValue(in_Seed),
-                    RandomizeMenusAndTransitionScreens = this.CosmeticOption.RandomizeMenusAndTransitionScreens.NextValue(in_Seed),
-                },
-            };
+            foreach (var opt in opts.Where(x => x.Info is not null && x.Info.IsCosmetic))
+                opt.Actualize(in_Seed);
         }
 
         public void SetFromFlagString(String in_OptionsFlagString, String in_CosmeticFlagString)
@@ -132,107 +106,125 @@ namespace MM2Randomizer.Settings
 
         public String GetBehaviorFlagsString()
         {
-            // TODO: The settings class can inherit from the flags class. Flags
-            // can be dynamically tracked by reflecting the properties of the class.
-            // Flag properties can be differentiated with Attributes
-            RandomizationFlags flags = new RandomizationFlags(28);
-
-            // Gameplay options
-            flags.PushValue(this.GameplayOption.BurstChaserMode.Randomize);
-            flags.PushValue(this.GameplayOption.BurstChaserMode.Value);
-            flags.PushValue(this.GameplayOption.FasterCutsceneText.Randomize);
-            flags.PushValue(this.GameplayOption.FasterCutsceneText.Value);
-            flags.PushValue(this.GameplayOption.HideStageNames.Randomize);
-            flags.PushValue(this.GameplayOption.HideStageNames.Value);
-            flags.PushValue(this.GameplayOption.RandomizeBossWeaknesses.Randomize);
-            flags.PushValue(this.GameplayOption.RandomizeBossWeaknesses.Value);
-            flags.PushValue(this.GameplayOption.RandomizeEnemySpawns.Randomize);
-            flags.PushValue(this.GameplayOption.RandomizeEnemySpawns.Value);
-            flags.PushValue(this.GameplayOption.RandomizeEnemyWeaknesses.Randomize);
-            flags.PushValue(this.GameplayOption.RandomizeEnemyWeaknesses.Value);
-            flags.PushValue(this.GameplayOption.RandomizeFalseFloors.Randomize);
-            flags.PushValue(this.GameplayOption.RandomizeFalseFloors.Value);
-            flags.PushValue(this.GameplayOption.RandomizeRefightTeleporters.Randomize);
-            flags.PushValue(this.GameplayOption.RandomizeRefightTeleporters.Value);
-            flags.PushValue(this.GameplayOption.RandomizeRobotMasterBehavior.Randomize);
-            flags.PushValue(this.GameplayOption.RandomizeRobotMasterBehavior.Value);
-            flags.PushValue(this.GameplayOption.RandomizeRobotMasterLocations.Randomize);
-            flags.PushValue(this.GameplayOption.RandomizeRobotMasterLocations.Value);
-            flags.PushValue(this.GameplayOption.RandomizeRobotMasterStageSelection.Randomize);
-            flags.PushValue(this.GameplayOption.RandomizeRobotMasterStageSelection.Value);
-            flags.PushValue(this.GameplayOption.RandomizeSpecialItemLocations.Randomize);
-            flags.PushValue(this.GameplayOption.RandomizeSpecialItemLocations.Value);
-            flags.PushValue(this.GameplayOption.RandomizeSpecialWeaponBehavior.Randomize);
-            flags.PushValue(this.GameplayOption.RandomizeSpecialWeaponBehavior.Value);
-            flags.PushValue(this.GameplayOption.RandomizeSpecialWeaponReward.Randomize);
-            flags.PushValue(this.GameplayOption.RandomizeSpecialWeaponReward.Value);
-            flags.PushValue(this.GameplayOption.MercilessMode.Randomize);
-            flags.PushValue(this.GameplayOption.MercilessMode.Value);
-
-            // Charging speed options
-            flags.PushValue(this.ChargingSpeedOption.CastleBossEnergy.Randomize);
-            flags.PushValue(this.ChargingSpeedOption.CastleBossEnergy.Value);
-            flags.PushValue(this.ChargingSpeedOption.EnergyTank.Randomize);
-            flags.PushValue(this.ChargingSpeedOption.EnergyTank.Value);
-            flags.PushValue(this.ChargingSpeedOption.HitPoints.Randomize);
-            flags.PushValue(this.ChargingSpeedOption.HitPoints.Value);
-            flags.PushValue(this.ChargingSpeedOption.RobotMasterEnergy.Randomize);
-            flags.PushValue(this.ChargingSpeedOption.RobotMasterEnergy.Value);
-            flags.PushValue(this.ChargingSpeedOption.WeaponEnergy.Randomize);
-            flags.PushValue(this.ChargingSpeedOption.WeaponEnergy.Value);
-
-            // Sprite options
-            flags.PushValue(this.SpriteOption.RandomizeBossSprites.Randomize);
-            flags.PushValue(this.SpriteOption.RandomizeBossSprites.Value);
-            flags.PushValue(this.SpriteOption.RandomizeEnemySprites.Randomize);
-            flags.PushValue(this.SpriteOption.RandomizeEnemySprites.Value);
-            flags.PushValue(this.SpriteOption.RandomizeEnvironmentSprites.Randomize);
-            flags.PushValue(this.SpriteOption.RandomizeEnvironmentSprites.Value);
-            flags.PushValue(this.SpriteOption.RandomizeItemPickupSprites.Randomize);
-            flags.PushValue(this.SpriteOption.RandomizeItemPickupSprites.Value);
-            flags.PushValue(this.SpriteOption.RandomizeSpecialWeaponSprites.Randomize);
-            flags.PushValue(this.SpriteOption.RandomizeSpecialWeaponSprites.Value);
-
-            // Quality of life options
-            flags.PushValue(this.QualityOfLifeOption.DisableWaterfall.Randomize);
-            flags.PushValue(this.QualityOfLifeOption.DisableWaterfall.Value);
-            flags.PushValue(this.QualityOfLifeOption.EnableLeftwardWallEjection.Randomize);
-            flags.PushValue(this.QualityOfLifeOption.EnableLeftwardWallEjection.Value);
-            flags.PushValue(this.QualityOfLifeOption.DisableFlashingEffects.Randomize);
-            flags.PushValue(this.QualityOfLifeOption.DisableFlashingEffects.Value);
-            flags.PushValue(this.QualityOfLifeOption.EnableUnderwaterLagReduction.Randomize);
-            flags.PushValue(this.QualityOfLifeOption.EnableUnderwaterLagReduction.Value);
-            flags.PushValue(this.QualityOfLifeOption.DisablePauseLock.Randomize);
-            flags.PushValue(this.QualityOfLifeOption.DisablePauseLock.Value);
-            flags.PushValue(this.QualityOfLifeOption.EnableBirdEggFix.Randomize);
-            flags.PushValue(this.QualityOfLifeOption.EnableBirdEggFix.Value);
-
-            return flags.ToFlagString();
+            return GetFlagsString(
+                new RandomizationFlags(28),
+                opts.Where(x => x.Info is not null && !x.Info.IsCosmetic));
         }
 
 
         public String GetCosmeticFlagsString()
         {
-            // TODO: Work out a way to bind options to a randomization flags
-            // instance such that updating the property will automatically
-            // update the flags value
-            RandomizationFlags flags = new RandomizationFlags(15);
+            return GetFlagsString(
+                new RandomizationFlags(14),
+                opts.Where(x => x.Info is not null && x.Info.IsCosmetic));
+        }
 
-            // Cosmetic options
-            flags.PushValue(this.CosmeticOption.Font.Randomize);
-            flags.PushValue(this.CosmeticOption.Font.Value);
-            flags.PushValue(this.CosmeticOption.HudElement.Randomize);
-            flags.PushValue(this.CosmeticOption.HudElement.Value);
-            flags.PushValue(this.CosmeticOption.PlayerSprite.Randomize);
-            flags.PushValue(this.CosmeticOption.PlayerSprite.Value);
-            flags.PushValue(this.CosmeticOption.RandomizeColorPalettes.Randomize);
-            flags.PushValue(this.CosmeticOption.RandomizeColorPalettes.Value);
-            flags.PushValue(this.CosmeticOption.RandomizeInGameText.Randomize);
-            flags.PushValue(this.CosmeticOption.RandomizeInGameText.Value);
-            flags.PushValue(this.CosmeticOption.RandomizeMusicTracks.Randomize);
-            flags.PushValue(this.CosmeticOption.RandomizeMusicTracks.Value);
+        void BuildOptionsMetadata()
+        {
+            Stack<MemberInfo> optPath = new();
+            HashSet<object> checkedObjs = new(ReferenceEqualityComparer.Instance);
 
-            return flags.ToFlagString();
+            BuildOptionsMetadata(optPath, this.GetType().GetTypeInfo(), this, false, checkedObjs);
+
+            return;
+        }
+
+        void BuildOptionsMetadata(
+            Stack<MemberInfo> optPath, 
+            TypeInfo objType, 
+            object obj, 
+            bool isCosmetic,
+            HashSet<object> checkedObjs)
+        {
+            Debug.Assert(!checkedObjs.Contains(obj));
+
+            checkedObjs.Add(obj);
+
+            foreach (var mbrInfo in objType.GetMembers())
+            {
+                TypeInfo? mbrType = null;
+                IOption? opt = null;
+                object? mbrObj = null;
+                if (mbrInfo is FieldInfo fieldInfo)
+                {
+                    opt = fieldInfo.GetValue(obj) as IOption;
+                    mbrType = fieldInfo.FieldType.GetTypeInfo();
+                    mbrObj = fieldInfo.GetValue(obj);
+                }
+                else if (mbrInfo is PropertyInfo propInfo)
+                {
+                    opt = propInfo.GetValue(obj) as IOption;
+                    mbrType = propInfo.PropertyType.GetTypeInfo();
+                    mbrObj = propInfo.GetValue(obj);
+                }
+                else
+                    continue;
+
+                if (opt is not null)
+                    AddOptionMetadata(optPath, mbrInfo, opt, isCosmetic);
+                else
+                {
+                    var grpAttr = mbrInfo.GetCustomAttribute<OptionGroupAttribute>()
+                        ?? mbrType.GetCustomAttribute<OptionGroupAttribute>();
+                    if (grpAttr is null)
+                        continue;
+
+                    Debug.Assert(mbrObj is not null);
+
+                    optPath.Push(mbrInfo);
+                    try
+                    {
+                        BuildOptionsMetadata(optPath, mbrType, mbrObj, grpAttr.IsCosmetic, checkedObjs);
+                    }
+                    finally
+                    {
+                        optPath.Pop();
+                    }
+                }
+            }
+
+            return;
+        }
+
+        void AddOptionMetadata(
+            Stack<MemberInfo> optPath,
+            MemberInfo mbrInfo,
+            IOption opt,
+            bool isCosmetic)
+        {
+            opt.Info = new(optPath.Reverse().Append(mbrInfo), opt, isCosmetic);
+
+            opts.Add(opt);
+            optsByPath[opt.Info.PathString] = opt;
+
+            string grpPath = string.Join(".", optPath.Reverse().Select(x => x.Name));
+            List<IOption>? grpOpts = null;
+            if (optsByGroup.ContainsKey(grpPath))
+                grpOpts = (List<IOption>)optsByGroup[grpPath];
+            else
+                optsByGroup[grpPath] = grpOpts = new();
+
+            grpOpts.Add(opt);
+        }
+
+        String GetFlagsString(
+            RandomizationFlags flags, 
+            IEnumerable<IOption> opts)
+        {
+            foreach (var iopt in opts)
+            {
+                flags.PushValue(iopt.EffectiveRandomize);
+                if (iopt is BoolOption opt)
+                    flags.PushValue(opt.EffectiveValue);
+                else if (iopt is IEnumOption ienumOpt)
+                    flags.PushValue(
+                        ienumOpt.EnumValueIdcs[iopt.EffectiveValue],
+                        Enum.GetValues(iopt.Type).Length);
+                else
+                    Debug.Assert(false);
+            }
+
+            return flags.ToFlagString('.');
         }
     }
 }

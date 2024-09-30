@@ -1,19 +1,28 @@
-﻿using MM2Randomizer.Settings.Options;
+﻿using MM2RandoLib.Settings.Options;
+using MM2Randomizer.Settings.Options;
+using System.ComponentModel;
 
 namespace MM2Randomizer.Settings.OptionGroups
 {
+    [OptionGroup]
     public class QualityOfLifeOptions
     {
-        public RandomizationOption<BooleanOption> DisableWaterfall { get; } = new RandomizationOption<BooleanOption>();
+        [Description("Disable Flashing Effects")]
+        public BoolOption DisableFlashingEffects { get; } = new(true);
 
-        public RandomizationOption<BooleanOption> EnableLeftwardWallEjection { get; } = new RandomizationOption<BooleanOption>();
+        [Description("Reduce Underwater Lag")]
+        public BoolOption EnableUnderwaterLagReduction { get; } = new(true);
 
-        public RandomizationOption<BooleanOption> DisableFlashingEffects { get; } = new RandomizationOption<BooleanOption>();
+        [Description("Disable Waterfall")]
+        public BoolOption DisableWaterfall { get; } = new(true);
 
-        public RandomizationOption<BooleanOption> EnableUnderwaterLagReduction { get; } = new RandomizationOption<BooleanOption>();
+        [Description("Allow Pause During Item Use")]
+        public BoolOption DisablePauseLock { get; } = new(true);
 
-        public RandomizationOption<BooleanOption> DisablePauseLock { get; } = new RandomizationOption<BooleanOption>();
+        [Description("Enable Leftward Wall Ejection")]
+        public BoolOption EnableLeftwardWallEjection { get; } = new(false);
 
-        public RandomizationOption<BooleanOption> EnableBirdEggFix { get; } = new RandomizationOption<BooleanOption>();
+        [Description("Fix Bird Object Despawn")]
+        public BoolOption EnableBirdEggFix { get; } = new(true);
     }
 }

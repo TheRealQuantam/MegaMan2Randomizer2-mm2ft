@@ -308,9 +308,7 @@ namespace MM2Randomizer.Randomizers
             debug.AppendLine("Random Music Module");
             debug.AppendLine("--------------------------------------------");
 
-#nullable disable
-            this.ImportMusic(in_Patch, in_Context.Seed, in_Context.ActualizedCosmeticSettings.CosmeticOption.OmitUnsafeMusicTracks == BooleanOption.True);
-#nullable restore
+            this.ImportMusic(in_Patch, in_Context.Seed, in_Context.Settings.CosmeticOptions.OmitUnsafeMusicTracks.Value);
         }
 
         public void ImportMusic(Patch in_Patch, ISeed in_Seed, Boolean in_SafeOnly = false)
