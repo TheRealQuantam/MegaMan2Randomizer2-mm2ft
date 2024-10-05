@@ -7,10 +7,24 @@ using System.Linq;
 
 namespace MM2Randomizer.Settings;
 
+/// <summary>
+/// A settings preset containing values for all options affected.
+/// </summary>
 public class SettingsPreset
 {
+    /// <summary>
+    /// The name displayed in the UI.
+    /// </summary>
     public string Name { get; }
+
+    /// <summary>
+    /// The name that will be displayed in the title screen of the generated seed.
+    /// </summary>
     public string? TournamentTitleScreenString { get; }
+
+    /// <summary>
+    /// The individual option presets.
+    /// </summary>
     public IReadOnlyList<OptionPreset> Options { get; }
 
     public SettingsPreset(string name, IEnumerable<OptionPreset> opts)
@@ -61,6 +75,9 @@ public class SettingsPreset
     public override string ToString() => Name;
 }
 
+/// <summary>
+/// The collection of all settings presets, plus helper functions to reduce typing when defining presets.
+/// </summary>
 public class SettingsPresets
 {
     public IReadOnlyList<SettingsPreset> Presets => _presets;
@@ -127,6 +144,9 @@ public class SettingsPresets
             ]));
     }
 
+    /// <summary>
+    /// Create a new preset for an enum option.
+    /// </summary>
     public static OptionPreset NewPreset<TEnum>(
         EnumOption<TEnum> option,
         bool randomize,
@@ -134,6 +154,9 @@ public class SettingsPresets
         where TEnum : struct, Enum
         => new OptionPreset(option, randomize, value);
 
+    /// <summary>
+    /// Create a new preset for an enum option.
+    /// </summary>
     public static OptionPreset NewPreset<TEnum>(
         EnumOption<TEnum> option,
         TEnum value)

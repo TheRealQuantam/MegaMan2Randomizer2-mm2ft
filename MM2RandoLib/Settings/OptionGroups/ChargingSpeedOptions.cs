@@ -4,8 +4,7 @@ using System.ComponentModel;
 
 namespace MM2Randomizer.Settings.OptionGroups
 {
-    [OptionGroup]
-    public class ChargingSpeedOptions
+    public class ChargingSpeedOptions : OptionGroup
     {
         [Description("Hit Point Charging Speed")]
         public EnumOption<ChargingSpeedOption> HitPoints { get; } = new(ChargingSpeedOption.Fastest);

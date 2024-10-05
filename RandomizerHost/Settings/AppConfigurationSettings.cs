@@ -18,82 +18,6 @@ using MM2Randomizer.Settings.Options;
 
 namespace RandomizerHost.Settings
 {
-    ////
-    [SettingsGroupName("RandomizationSettings")]
-    public sealed class RandomizationSettingsProxy : ApplicationSettingsBase
-    {
-        Dictionary<string, Action<object>> _propSetters = new();
-        List<PropertyChangedEventHandler> _changeHdlrs = new();
-
-        public RandomizationSettingsProxy(RandomizationSettings settings, SettingsProvider provider)
-        {
-            PropertyInfo optRndProp = typeof(IOption).GetProperty(nameof(IOption.Randomize)),
-                optValueProp = typeof(IOption).GetProperty(nameof(IOption.BaseValue));
-
-            if (Providers.Count == 0)
-                Providers.Add(provider);
-
-            foreach (var opt in settings.Options)
-            {
-                var optInfo = opt.Info;
-                SettingsProperty rndProp = new(optInfo.PathString + ":Randomize")
-                {
-                    PropertyType = typeof(bool),
-                    Provider = Providers[nameof(LocalFileSettingsProvider)],
-                    IsReadOnly = false,
-                    DefaultValue = "False",
-                };
-                rndProp.Attributes.Add(typeof(UserScopedSettingAttribute), 
-                    new UserScopedSettingAttribute());
-
-                SettingsProperty valueProp = new(optInfo.PathString + ":Value")
-                {
-                    PropertyType = optInfo.Type,
-                    Provider = Providers[nameof(LocalFileSettingsProvider)],
-                    IsReadOnly = false,
-                    DefaultValue = opt.DefaultValue.ToString(),
-                };
-                valueProp.Attributes.Add(typeof(UserScopedSettingAttribute),
-                    new UserScopedSettingAttribute());
-
-                Properties.Add(rndProp);
-                Properties.Add(valueProp);
-
-                _propSetters[rndProp.Name] = (object value) => optRndProp.SetValue(opt, value);
-                _propSetters[valueProp.Name] = (object value) => optValueProp.SetValue(opt, value);
-
-                PropertyChangedEventHandler changeHdlr = (object sender, PropertyChangedEventArgs args) =>
-                {
-                    if (args.PropertyName == nameof(IOption.Randomize))
-                        this[rndProp.Name] = optRndProp.GetValue(sender);
-                    else if (args.PropertyName == nameof(IOption.BaseValue))
-                        this[valueProp.Name] = optValueProp.GetValue(sender);
-                };
-                _changeHdlrs.Add(changeHdlr);
-                opt.PropertyChanged += changeHdlr;
-            }
-
-            foreach (var value in Providers.Cast<SettingsProvider>().First()
-                .GetPropertyValues(Context, Properties)
-                .Cast<SettingsPropertyValue>())
-            {
-                this[value.Name] = value.PropertyValue;
-            }
-
-            return;
-        }
-
-        public override object this[string propName] 
-        {
-            get => base[propName];
-            set
-            {
-                _propSetters[propName](value);
-                base[propName] = value;
-            }
-        }
-    }
-
     public sealed class AppConfigurationSettings : ApplicationSettingsBase, IXmlSerializable
     {
         //
@@ -101,7 +25,7 @@ namespace RandomizerHost.Settings
         //
         public AppConfigurationSettings()
         {
-            RandomizationSettingsProxy = new(
+            RandomizationSettingsAdapter = new(
                 this.RandomizationSettings, 
                 Providers[nameof(LocalFileSettingsProvider)]);
         }
@@ -113,8 +37,7 @@ namespace RandomizerHost.Settings
 
         public readonly RandomizationSettings RandomizationSettings = new();
 
-        [UserScopedSetting]
-        public RandomizationSettingsProxy RandomizationSettingsProxy { get; }
+        public RandomizationSettingsAdapter RandomizationSettingsAdapter { get; }
 
         [UserScopedSetting]
         [DefaultSettingValue("")]
@@ -406,15 +329,15 @@ namespace RandomizerHost.Settings
 
                 in_Writer.WriteStartElement(RANDOMIZATION_SETTINGS_ELEMENT_NAME);
                 {
-                    foreach (var (grpName, grpOpts) in RandomizationSettings.OptionsByGroup.Where(kv => kv.Value.Count != 0))
+                    foreach (var (grpPath, grp) in RandomizationSettings.GroupsByPath.Where(kv => kv.Value.Options.Count != 0))
                     {
                         in_Writer.WriteStartElement(OPTION_GROUP_ELEMENT_NAME);
                         {
                             in_Writer.WriteAttributeString(
                                 OPTION_GROUP_PATH_ATTRIBUTE_NAME, 
-                                grpOpts[0].Info.GroupPathString);
+                                grpPath);
                             
-                            foreach (var opt in grpOpts)
+                            foreach (var opt in grp.Options.Where(opt => opt.Info.SaveLoad))
                             {
                                 in_Writer.WriteStartElement(OPTION_ELEMENT_NAME);
 
@@ -447,7 +370,7 @@ namespace RandomizerHost.Settings
         public override void Save()
         {
             base.Save();
-            this.RandomizationSettingsProxy.Save();
+            this.RandomizationSettingsAdapter.Save();
         }
 
         public void UpdateRandomizerSettings(Boolean in_DefaultSeed)

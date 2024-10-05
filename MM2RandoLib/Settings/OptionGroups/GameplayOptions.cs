@@ -4,8 +4,7 @@ using System.ComponentModel;
 
 namespace MM2Randomizer.Settings.OptionGroups
 {
-    [OptionGroup]
-    public class GameplayOptions
+    public class GameplayOptions : OptionGroup
     {
         [Description("Randomize Special Weapon Behavior")]
         public BoolOption RandomizeSpecialWeaponBehavior { get; } = new(true);

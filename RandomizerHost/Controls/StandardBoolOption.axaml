@@ -19,8 +19,8 @@
       Name="Value"
       Content="{Binding Info.Description}"
       ToolTip.Tip="{Binding Info.Tooltip}"
-      IsEnabled="{Binding !EffectiveRandomize}"
-      IsChecked="{Binding EffectiveValue}"
+      IsEnabled="{Binding !UiRandomize}"
+      IsChecked="{Binding UiValue}"
     />
   </StackPanel>
 </UserControl>

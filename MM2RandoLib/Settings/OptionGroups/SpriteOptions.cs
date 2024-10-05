@@ -4,8 +4,7 @@ using System.ComponentModel;
 
 namespace MM2Randomizer.Settings.OptionGroups
 {
-    [OptionGroup]
-    public class SpriteOptions
+    public class SpriteOptions : OptionGroup
     {
         [Description("Randomize Boss Sprites")]
         public BoolOption RandomizeBossSprites { get; } = new(true);

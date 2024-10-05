@@ -374,7 +374,7 @@
                             IsChecked="{Binding IsCoreModulesChecked, Mode=OneWay}"
                         />
                     </Grid>
-                    <ItemsControl Items="{Binding Settings.OptionsByGroup[GameplayOptions]}">
+                    <ItemsControl Items="{Binding Settings.GameplayOptions.AutoCreateOptions}">
                         <ItemsControl.ItemsPanel>
                             <ItemsPanelTemplate>
                                 <WrapPanel
@@ -392,7 +392,7 @@
                 Sprites
             -->
             <TabItem Header="Sprites">
-                <ItemsControl Items="{Binding Settings.OptionsByGroup[SpriteOptions]}">
+                <ItemsControl Items="{Binding Settings.SpriteOptions.AutoCreateOptions}">
                     <ItemsControl.ItemsPanel>
                         <ItemsPanelTemplate>
                             <WrapPanel
@@ -412,7 +412,7 @@
                 <ItemsControl 
                     Width="450"
                     HorizontalAlignment="Left"
-                    Items="{Binding Settings.OptionsByGroup[ChargingSpeedOptions]}"
+                    Items="{Binding Settings.ChargingSpeedOptions.AutoCreateOptions}"
                     ItemTemplate="{DynamicResource SuffixedDescriptionEnumComboBox}"
                 >
                     <ItemsControl.ItemsPanel>
@@ -431,7 +431,7 @@
                 Quality of Life Patches
             -->
             <TabItem Header="QoL Patches">
-                <ItemsControl Items="{Binding Settings.OptionsByGroup[QualityOfLifeOptions]}">
+                <ItemsControl Items="{Binding Settings.QualityOfLifeOptions.AutoCreateOptions}">
                     <ItemsControl.ItemsPanel>
                         <ItemsPanelTemplate>
                             <WrapPanel
@@ -456,7 +456,7 @@
 
                     <StackPanel Grid.Column="0">
                         <ItemsControl
-                            Items="{Binding Settings.OptionsByGroup[CosmeticOptions]}"
+                            Items="{Binding Settings.CosmeticOptions.AutoCreateOptions}"
                             ItemTemplate="{DynamicResource PrefixedDescriptionEnumComboBox}"
                         >
                             <ItemsControl.ItemsPanel>

@@ -4,8 +4,8 @@ using System.ComponentModel;
 
 namespace MM2Randomizer.Settings.OptionGroups
 {
-    [OptionGroup(IsCosmetic = true)]
-    public class CosmeticOptions
+    [CosmeticOptionGroup]
+    public class CosmeticOptions : OptionGroup
     {
         [Description("Randomize Color Palettes")]
         public BoolOption RandomizeColorPalettes { get; } = new(true);

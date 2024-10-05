@@ -12,7 +12,7 @@
     <!-- Toggle to randomize the option -->
     <ToggleSwitch
       Name="Randomize"
-      IsChecked="{Binding EffectiveRandomize}"
+      IsChecked="{Binding UiRandomize}"
       ToolTip.Tip="Randomize"
       OffContent=""
       OnContent=""

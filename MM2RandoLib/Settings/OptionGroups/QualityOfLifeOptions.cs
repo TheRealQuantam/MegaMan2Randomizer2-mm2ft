@@ -4,8 +4,7 @@ using System.ComponentModel;
 
 namespace MM2Randomizer.Settings.OptionGroups
 {
-    [OptionGroup]
-    public class QualityOfLifeOptions
+    public class QualityOfLifeOptions : OptionGroup
     {
         [Description("Disable Flashing Effects")]
         public BoolOption DisableFlashingEffects { get; } = new(true);

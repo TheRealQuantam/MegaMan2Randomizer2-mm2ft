@@ -22,10 +22,11 @@
     <ctls:StandardOptionRandomSlider DockPanel.Dock="Left"/>
     <ComboBox
         Name="ComboBox"
+        ToolTip.Tip="{Binding Info.Tooltip}"
         HorizontalAlignment="Stretch"
-        IsEnabled="{Binding !EffectiveRandomize}"
+        IsEnabled="{Binding !UiRandomize}"
         Items="{Binding EnumValues}"
-        SelectedItem="{Binding EffectiveValue}"
+        SelectedItem="{Binding UiValue}"
     >
       <ComboBox.ItemTemplate>
         <DataTemplate>

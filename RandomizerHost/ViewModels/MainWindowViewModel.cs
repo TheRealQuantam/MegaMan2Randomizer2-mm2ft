@@ -27,7 +27,7 @@ namespace RandomizerHost.ViewModels
         {
             this.AppConfigurationSettings = new AppConfigurationSettings();
             this.AppConfigurationSettings.PropertyChanged += this.AppConfigurationSettings_PropertyChanged;
-            this.AppConfigurationSettings.RandomizationSettingsProxy.PropertyChanged += this.AppConfigurationSettings_PropertyChanged;
+            this.AppConfigurationSettings.RandomizationSettingsAdapter.PropertyChanged += this.AppConfigurationSettings_PropertyChanged;
 
             this.SettingsPresets = new(Settings);
             this.SettingsPreset = this.SettingsPresets.Presets[0];
@@ -35,7 +35,7 @@ namespace RandomizerHost.ViewModels
             // If there are any missing fields in the defined presets, display them here
             try
             {
-                this.SettingsPresets.ValidatePresets(Settings.Options);
+                this.SettingsPresets.ValidatePresets(Settings.AllOptions);
             }
             catch (Exception e)
             {
