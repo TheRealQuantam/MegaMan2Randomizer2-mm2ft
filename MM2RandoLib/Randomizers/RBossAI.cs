@@ -8,6 +8,13 @@ namespace MM2Randomizer.Randomizers
 {
     public class RBossAI : IRandomizer
     {
+        public enum PicoPicoSpawnModes
+        {
+            Horizontal = 0,
+            LeftTopVertical = 8,
+            RightTopVertical = 16,
+        }
+
         public RBossAI() { }
 
         public void Randomize(Patch in_Patch, RandomizationContext in_Context)
@@ -20,6 +27,9 @@ namespace MM2Randomizer.Randomizers
             this.ChangeFlash(in_Patch, in_Context.Seed);
             this.ChangeMetal(in_Patch, in_Context.Seed);
             this.ChangeCrash(in_Patch, in_Context.Seed);
+
+            if (in_Context.Settings.GameplayOptions.RandomizePicoPicoSpawns.Value)
+                this.ChangePicoPico(in_Patch, in_Context.Seed);
         }
 
         /// <summary>
@@ -503,6 +513,88 @@ namespace MM2Randomizer.Randomizers
 
             //0x02CDEE - Crash Bomber velocity, 0x06, do from 2 to 8
             in_Patch.Add(0x02CDEE, in_Seed.NextUInt8(2, 9), "Crashman Crash Bomber X-Velocity");
+        }
+
+        protected void ChangePicoPico(Patch in_Patch, ISeed in_Seed)
+        {
+            const int ArenaWidth = 10,
+                ArenaHeight = 9,
+                BaseXValue = 0x38,
+                BaseYValue = 0x37,
+                NumUnits = 14,
+                MaxLevel = 3,
+                SpawnTypeOffs = 0x2d2ed,
+                YTblOffs = SpawnTypeOffs + NumUnits,
+                XTblOffs = YTblOffs + NumUnits * 2,
+                LvlTblOffs = XTblOffs + NumUnits * 2;
+
+            // Create the level table
+            List<byte> lvlTbl = new();
+            int unitsPerLvl = in_Seed.NextBoolean() ? 3 : 4;
+            for (int i = 0; i < MaxLevel; i++)
+                lvlTbl.AddRange(Enumerable.Repeat((byte)i, unitsPerLvl));
+            lvlTbl.AddRange(Enumerable.Repeat((byte)MaxLevel, NumUnits - lvlTbl.Count));
+
+            // Create the position tables
+            var modes = Enum.GetValues<PicoPicoSpawnModes>();
+            Queue<int> yAvail = new(in_Seed.Shuffle(Enumerable.Range(0, ArenaHeight))),
+                xAvail = new(in_Seed.Shuffle(
+                    Enumerable.Range(0, ArenaWidth / 2)
+                    .Except(Enumerable.Repeat(ArenaWidth / 4, 1))
+                    .Select(x => x * 2)
+                ));
+            List<byte> modeTbl = new();
+            int[] horizXs = [-1, ArenaWidth],
+                vertYs = [-1, ArenaHeight];
+            List<int> yTbl = new(),
+                xTbl = new();
+
+            for (int unitIdx = 0; unitIdx < NumUnits; unitIdx++)
+            {
+                bool created = false;
+                while (!created)
+                {
+                    var mode = in_Seed.NextEnum<PicoPicoSpawnModes>();
+                    if (mode == PicoPicoSpawnModes.Horizontal)
+                    {
+                        int y;
+                        if (!yAvail.TryDequeue(out y))
+                            continue;
+
+                        xTbl.AddRange(horizXs);
+                        yTbl.AddRange(Enumerable.Repeat(y, 2));
+                    }
+                    else
+                    {
+                        int leftX;
+                        if (!xAvail.TryDequeue(out leftX))
+                            continue;
+
+                        int[] xs = [leftX, leftX + 1];
+                        if (mode == PicoPicoSpawnModes.RightTopVertical)
+                            // Top is always first
+                            xs = xs.Reverse().ToArray();
+
+                        xTbl.AddRange(xs);
+                        yTbl.AddRange(vertYs);
+                    }
+
+                    modeTbl.Add((byte)mode);
+
+                    created = true;
+                }
+            }
+
+            in_Patch.Add(SpawnTypeOffs, modeTbl, "Pico-Pico mode table");
+            in_Patch.Add(LvlTblOffs, lvlTbl, "Pico-Pico level table");
+            in_Patch.Add(XTblOffs, 
+                xTbl.Select(x => checked((byte)(x * 0x10 + BaseXValue))), 
+                "Pico-Pico X table");
+            in_Patch.Add(YTblOffs,
+                yTbl.Select(y => checked((byte)(y * 0x10 + BaseYValue))),
+                "Pico-Pico Y table");
+
+            return;
         }
     }
 }
