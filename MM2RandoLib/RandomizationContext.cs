@@ -2,15 +2,15 @@
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
-using System.Reflection.Metadata.Ecma335;
-using System.Security.Cryptography.X509Certificates;
+using System.Linq;
+using MM2Randomizer.Enums;
 using MM2Randomizer.Patcher;
 using MM2Randomizer.Random;
 using MM2Randomizer.Randomizers;
 using MM2Randomizer.Randomizers.Colors;
 using MM2Randomizer.Randomizers.Enemies;
 using MM2Randomizer.Randomizers.Stages;
-using MM2Randomizer.Resources.SpritePatches;
+using MM2Randomizer.Resources;
 using MM2Randomizer.Settings;
 using MM2Randomizer.Settings.OptionGroups;
 using MM2Randomizer.Settings.Options;
@@ -46,6 +46,7 @@ namespace MM2Randomizer
         // Create randomization patch
         public Patch Patch { get; private set; } = new Patch();
 
+        public ResourceTree ResourceTree { get; } = new(null, "Resources");
 
         //================
         // "CORE" MODULES
@@ -132,6 +133,19 @@ namespace MM2Randomizer
             var chargingOpts = Settings.ChargingSpeedOptions;
             var qolOpts = Settings.QualityOfLifeOptions;
 
+#if DEBUG
+            ResourceTree.TestFind();
+            ResourceTree.TestPaths();
+#endif
+
+            Dictionary<ResourceNode, ResourceNode?>? bossPatches = null,
+                enemySprites = null,
+                envSprites = null,
+                screenPatches = null,
+                pickupPatches = null,
+                weaponSprites = null;
+            Dictionary<EBossIndex, ResourceNode?>? bossSprites = null;
+
             // List of randomizer modules to use; will add modules based on checkbox states
             List<IRandomizer> randomizers = new List<IRandomizer>();
             if (gameplayOpts.RandomizeRobotMasterStageSelection.Value)
@@ -199,27 +213,30 @@ namespace MM2Randomizer
             // Apply random sprite changes
             if (spriteOpts.RandomizeBossSprites.Value)
             {
-                BossSpriteRandomizer.ApplySprites(this.Seed, this.Patch, RandomizationContext.TEMPORARY_FILE_NAME);
+                bossPatches = ApplyOneIpsPerDir("SpritePatches.Bosses");
+                bossSprites = bossPatches
+                    .Where(kv => BossDirNames.ContainsKey(kv.Key.Name))
+                    .ToDictionary(kv => BossDirNames[kv.Key.Name], kv => kv.Value);
             }
 
             if (spriteOpts.RandomizeEnemySprites.Value)
             {
-                EnemySpriteRandomizer.ApplySprites(this.Seed, this.Patch, RandomizationContext.TEMPORARY_FILE_NAME);
+                enemySprites = ApplyOneIpsPerDir("SpritePatches.Enemies");
             }
 
             if (spriteOpts.RandomizeSpecialWeaponSprites.Value)
             {
-                WeaponSpriteRandomizer.ApplySprites(this.Seed, this.Patch, RandomizationContext.TEMPORARY_FILE_NAME);
+                weaponSprites = ApplyOneIpsPerDir("SpritePatches.Weapons");
             }
 
             if (spriteOpts.RandomizeItemPickupSprites.Value)
             {
-                PickupSpriteRandomizer.ApplySprites(this.Seed, this.Patch, RandomizationContext.TEMPORARY_FILE_NAME);
+                pickupPatches = ApplyOneIpsPerDir("SpritePatches.Pickups");
             }
 
             if (spriteOpts.RandomizeEnvironmentSprites.Value)
             {
-                EnvironmentSpriteRandomizer.ApplySprites(this.Seed, this.Patch, RandomizationContext.TEMPORARY_FILE_NAME);
+                envSprites = ApplyOneIpsPerDir("SpritePatches.Environment");
             }
 
 
@@ -261,7 +278,8 @@ namespace MM2Randomizer
             // Apply random sprite changes
             if (cosmOpts.RandomizeMenusAndTransitionScreens.Value)
             {
-                MenusAndTransitionScreenRandomizer.ApplySprites(this.Seed, this.Patch, RandomizationContext.TEMPORARY_FILE_NAME);
+                screenPatches = ApplyOneIpsPerDir(
+                    "SpritePatches.MenusAndTransitionScreens");
             }
 
 
@@ -355,42 +373,45 @@ namespace MM2Randomizer
 
             if (qolOpts.EnableLeftwardWallEjection.Value)
             {
-                MiscHacks.EnableLeftwardWallEjection(this.Patch, RandomizationContext.TEMPORARY_FILE_NAME);
+                MiscHacks.EnableLeftwardWallEjection(ResourceTree, this.Patch, RandomizationContext.TEMPORARY_FILE_NAME);
             }
 
             // Apply pre-patch changes via IPS patch (manual title screen, stage select, stage changes, player sprite)
-            this.Patch.ApplyIPSPatch(RandomizationContext.TEMPORARY_FILE_NAME, Properties.Resources.mm2ft, false);
-            this.Patch.ApplyIPSPatch(RandomizationContext.TEMPORARY_FILE_NAME, Properties.Resources.mm2rng_prepatch);
+            this.Patch.ApplyIPSPatch(RandomizationContext.TEMPORARY_FILE_NAME, ResourceTree.LoadResource("mm2ft.ips"), false);
+            this.Patch.ApplyIPSPatch(RandomizationContext.TEMPORARY_FILE_NAME, ResourceTree.LoadResource("mm2rng_prepatch.ips"));
 
             // IPS patches should/must come after mm2ft as IPS patches are applied immediately and may be overwritten by deferred patches
             if (qolOpts.DisablePauseLock.Value)
             {
-                MiscHacks.DisablePauseLock(this.Patch, RandomizationContext.TEMPORARY_FILE_NAME);
+                MiscHacks.DisablePauseLock(ResourceTree, this.Patch, RandomizationContext.TEMPORARY_FILE_NAME);
             }
 
             if (gameplayOpts.MercilessMode.Value)
             {
-                MiscHacks.EnableMercilessMode(this.Patch, RandomizationContext.TEMPORARY_FILE_NAME);
+                MiscHacks.EnableMercilessMode(ResourceTree, this.Patch, RandomizationContext.TEMPORARY_FILE_NAME);
             }
 
             if (qolOpts.EnableBirdEggFix.Value)
             {
-                MiscHacks.EnableBirdEggFix(this.Patch, RandomizationContext.TEMPORARY_FILE_NAME);
+                MiscHacks.EnableBirdEggFix(ResourceTree, this.Patch, RandomizationContext.TEMPORARY_FILE_NAME);
             }
 
-            MiscHacks.EnableClownBotFix(this.Patch, RandomizationContext.TEMPORARY_FILE_NAME);
+            MiscHacks.EnableClownBotFix(ResourceTree, this.Patch, RandomizationContext.TEMPORARY_FILE_NAME);
 
             MiscHacks.SetNewMegaManSprite(
+                ResourceTree,
                 this.Patch,
                 RandomizationContext.TEMPORARY_FILE_NAME,
                 cosmOpts.PlayerSprite.Value);
 
             MiscHacks.SetNewHudElement(
+                ResourceTree,
                 this.Patch,
                 RandomizationContext.TEMPORARY_FILE_NAME,
                 cosmOpts.HudElement.Value);
 
             MiscHacks.SetNewFont(
+                ResourceTree,
                 this.Patch,
                 RandomizationContext.TEMPORARY_FILE_NAME,
                 cosmOpts.Font.Value);
@@ -419,5 +440,67 @@ namespace MM2Randomizer
         //
 
         private const String TEMPORARY_FILE_NAME = "temp.nes";
+
+        private static readonly Dictionary<string, EBossIndex> BossDirNames = new()
+        {
+            { "AirMan", EBossIndex.Air },
+            { "Alien", EBossIndex.Alien },
+            { "BoobeamTrap", EBossIndex.Boobeam },
+            { "BubbleMan", EBossIndex.Bubble },
+            { "CrashMan", EBossIndex.Crash },
+            { "FlashMan", EBossIndex.Flash },
+            { "GutsTank", EBossIndex.Guts },
+            { "HeatMan", EBossIndex.Heat },
+            { "MechaDragon", EBossIndex.Dragon },
+            { "MetalMan", EBossIndex.Metal },
+            { "PicopicoKun", EBossIndex.Pico },
+            { "QuickMan", EBossIndex.Quick },
+            { "WoodMan", EBossIndex.Wood },
+        };
+
+        private Dictionary<ResourceNode, ResourceNode?> ApplyOneIpsPerDir(
+            string in_BasePath, 
+            bool in_CanBeNull = true,
+            ISeed? in_Seed = null,
+            Patch? in_Patch = null,
+            string? in_OutFileName = null,
+            ResourceTree? in_ResTree = null)
+        {
+            if (in_Seed is null)
+                in_Seed = this.Seed;
+            if (in_Patch is null)
+                in_Patch = this.Patch;
+            if (in_OutFileName is null)
+                in_OutFileName = RandomizationContext.TEMPORARY_FILE_NAME;
+            if (in_ResTree is null)
+                in_ResTree = ResourceTree;
+
+            var relRoot = in_ResTree.Find(in_BasePath);
+
+            Dictionary<ResourceNode, ResourceNode?> selDirNodes = new(ReferenceEqualityComparer.Instance);
+            foreach (var dirNode in relRoot.Descendants.Where(x => !x.IsFile))
+            {
+                var fileNodes = dirNode.Files.Select(x => (ResourceNode?)x).ToList();
+                if (in_CanBeNull)
+                    fileNodes.Add(null);
+
+                if (fileNodes.Count == 0)
+                    continue;
+
+                var selNode = in_Seed.NextElement(fileNodes);
+                selDirNodes[dirNode] = selNode;
+            }
+
+            foreach (var (dirNode, fileNode) in selDirNodes)
+            {
+                if (fileNode is null)
+                    continue;
+
+                var ips = in_ResTree.LoadResource(fileNode);
+                in_Patch.ApplyIPSPatch(in_OutFileName, ips);
+            }
+
+            return selDirNodes;
+        }
     }
 }
