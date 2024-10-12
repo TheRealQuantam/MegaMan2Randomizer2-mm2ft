@@ -4,7 +4,6 @@ using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Reflection;
-using System.Reflection.Metadata.Ecma335;
 using System.Text;
 using System.Xml.Linq;
 
@@ -12,6 +11,12 @@ namespace MM2Randomizer;
 
 public static class AssemblyExtensions
 {
+    /// <summary>
+    /// Load an embedded binary resource.
+    /// </summary>
+    /// <param name="asm">The assembly containing the resource.</param>
+    /// <param name="path">The relative path to the resource.</param>
+    /// <param name="asmPre">If true, prefix the assembly's name. If false, this must be done manually.</param>
     public static byte[] LoadResource(
         this Assembly asm, 
         string path, 
@@ -26,6 +31,13 @@ public static class AssemblyExtensions
         }
     }
 
+    /// <summary>
+    /// Load an embedded text resource.
+    /// </summary>
+    /// <param name="asm">The assembly containing the resource.</param>
+    /// <param name="path">The relative path to the resource.</param>
+    /// <param name="enc">The text encoding of the resource.</param>
+    /// <param name="asmPre">If true, prefix the assembly's name. If false, this must be done manually.</param>
     public static string LoadResource(
         this Assembly asm, 
         string path, 
@@ -39,6 +51,12 @@ public static class AssemblyExtensions
         }
     }
 
+    /// <summary>
+    /// Load an embedded resource in UTF-8 format
+    /// </summary>
+    /// <param name="asm">The assembly containing the resource.</param>
+    /// <param name="path">The relative path to the resource.</param>
+    /// <param name="asmPre">If true, prefix the assembly's name. If false, this must be done manually.</param>
     public static string LoadUtf8Resource(
         this Assembly asm, 
         string path,
@@ -80,6 +98,12 @@ public static class AssemblyExtensions
 
     }
 
+    /// <summary>
+    /// Enumerate the resources embedded in an assembly.
+    /// </summary>
+    /// <param name="asm">The assembly containing the resource.</param>
+    /// <param name="asmPre">If true, prefix the assembly's name. If false, this must be done manually.</param>
+    /// <param name="prefix">An optional prefix to filter paths by.</param>
     public static IEnumerable<string> GetResourceNames(
         this Assembly asm, 
         bool asmPrefix = true, 

@@ -1,5 +1,6 @@
 ﻿using MM2Randomizer;
 using MM2Randomizer.Patcher;
+using MM2Randomizer.Random;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -13,6 +14,9 @@ namespace MM2Randomizer.Resources
     using RNode = ResourceNode;
     using RNodeEnum = IEnumerable<ResourceNode>;
 
+    /// <summary>
+    /// Helper class to compare resource paths broken up into string arrays, needed for Sort.
+    /// </summary>
     struct StringArrayComparaer : IEqualityComparer<string[]>, IComparer<string[]>
     {
         public int GetHashCode(string[] array)
@@ -52,6 +56,9 @@ namespace MM2Randomizer.Resources
         }
     }
 
+    /// <summary>
+    /// Helper class to compare two resource paths while attempting to treat them as if they were string arrays, needed by BinarySearch.
+    /// </summary>
     struct ResourceNodeSearcher : IComparer<RNode>
     {
         public string SearchString;
@@ -85,15 +92,39 @@ namespace MM2Randomizer.Resources
         }
     }
 
+    /// <summary>
+    /// A node in the ResourceTree.
+    /// </summary>
     public class ResourceNode
     {
+        /// <summary>
+        /// The name of this node.
+        /// </summary>
         public string Name { get; }
+
+        /// <summary>
+        /// The "full" path of this node, relative to the tree's prefix.
+        /// </summary>
         public string Path { get; }
+
         public bool IsFile { get; }
+
+        /// <summary>
+        /// All children of the node.
+        /// </summary>
         public IReadOnlyList<RNode> Children => _children;
+
         public RNodeEnum Files => Children.Where(x => x.IsFile);
         public RNodeEnum Directories => Children.Where(x => !x.IsFile);
+
+        /// <summary>
+        /// All children and of this node and its children, recursively.
+        /// </summary>
         public RNodeEnum Descendants => EnumDescendants();
+
+        /// <summary>
+        /// All files contained by this node and its descendant directories.
+        /// </summary>
         public RNodeEnum AllFiles => EnumDescendants().Where(x => x.IsFile);
 
         protected List<RNode> _children;
@@ -112,6 +143,9 @@ namespace MM2Randomizer.Resources
 
         public override string ToString() => Path;
 
+        /// <summary>
+        /// Try to find a descendant by relative path, returning null if it cannot be found.
+        /// </summary>
         public RNode? TryFind(string path)
         {
             ResourceNodeSearcher cmp = new(path);
@@ -157,6 +191,9 @@ namespace MM2Randomizer.Resources
             return node.TryFind(path.Substring(node.Name.Length + 1));
         }
 
+        /// <summary>
+        /// Find a descendant node by relative path. If the node cannot be found, throws FileNotFoundException.
+        /// </summary>
         public RNode Find(string path)
         {
             var node = TryFind(path);
@@ -166,6 +203,9 @@ namespace MM2Randomizer.Resources
             return node;
         }
 
+        /// <summary>
+        /// Find all descendants of the node.
+        /// </summary>
         RNodeEnum EnumDescendants()
         {
             Stack<IEnumerator<RNode>> enStack = new();
@@ -192,21 +232,110 @@ namespace MM2Randomizer.Resources
                 }
             }
         }
+
+        /// <summary>
+        /// Randomly pick one file child of the directory node.
+        /// </summary>
+        /// <param name="seed">The RNG.</param>
+        /// <param name="canBeNull">If true, null will be an additional possible option.</param>
+        /// <param name="includeFile">A filter function to determine whether a file should be included in the options.</param>
+        /// <returns>The selected child or null.</returns>
+        public ResourceNode? PickOneFile(
+            ISeed seed,
+            bool canBeNull = true,
+            Func<ResourceNode, bool>? includeFile = null)
+        {
+            if (includeFile is null)
+                includeFile = n => !n.Children.Any();
+
+            var fileNodes = Files.Where(includeFile)
+                .Select(n => (ResourceNode?)n).ToList();
+
+            if (canBeNull)
+                fileNodes.Add(null);
+            else
+                Debug.Assert(fileNodes.Any());
+
+            return seed.NextElement(fileNodes);
+        }
+
+        /// <summary>
+        /// Randomly picks one file (or null) for each directory in the subtree.
+        /// </summary>
+        /// <param name="seed">The RNG.</param>
+        /// <param name="canBeNull">If true, null will be an additional possible option.</param>
+        /// <param name="includeDir">A filter function to determine for which directories a file should be picked. The default set is directories with no subdirectories.</param>
+        /// <param name="includeFile">A filter function to determine whether a file should be included in the options.</param>
+        /// <returns>The selected child or null.</returns>
+        public Dictionary<ResourceNode, ResourceNode?> PickOneFilePerDirectory(
+            ISeed seed,
+            bool canBeNull = true,
+            Func<ResourceNode, bool>? includeDir = null,
+            Func<ResourceNode, bool>? includeFile = null)
+        {
+            if (includeDir is null)
+                includeDir = n => !n.Directories.Any();
+
+            Dictionary<ResourceNode, ResourceNode?> selDirNodes = new(ReferenceEqualityComparer.Instance);
+            foreach (var dirNode 
+                in Descendants.Where(n => !n.IsFile && includeDir(n)))
+            {
+                var selNode = dirNode.PickOneFile(seed, canBeNull, includeFile);
+                selDirNodes[dirNode] = selNode;
+            }
+
+            return selDirNodes;
+        }
     }
 
+    /// <summary>
+    /// A "directory tree" of all embedded resources for an assembly optionally matching a specified prefix.
+    /// </summary>
     public class ResourceTree
     {
+        /// <summary>
+        /// The assembly that contains the resources in the tree.
+        /// </summary>
         public readonly Assembly Assembly;
+
+        /// <summary>
+        /// The specified prefix to the root of the tree.
+        /// </summary>
         public readonly string Prefix;
+
+        /// <summary>
+        /// The full prefix for the root such that it may be directly prepended to descendant paths to get the complete path of each node.
+        /// </summary>
         public readonly string EffectivePrefix;
 
         public readonly RNode Root;
 
-        public RNodeEnum All => Root.Descendants.Prepend(Root);
-        public RNodeEnum Files => Root.Files;
-        public RNodeEnum AllFiles => Root.AllFiles;
-        public RNodeEnum AllDirectories => All.Where(x => !x.IsFile);
+        /// <summary>
+        /// All nodes in the tree, including the root node.
+        /// </summary>
+        public RNodeEnum AllNodes => Root.Descendants.Prepend(Root);
 
+        /// <summary>
+        /// File children of the root node.
+        /// </summary>
+        public RNodeEnum Files => Root.Files;
+
+        /// <summary>
+        /// All files in the tree.
+        /// </summary>
+        public RNodeEnum AllFiles => Root.AllFiles;
+
+        /// <summary>
+        /// All directories in the tree.
+        /// </summary>
+        public RNodeEnum AllDirectories => AllNodes.Where(x => !x.IsFile);
+
+        /// <summary>
+        /// Construct a ResourceTree for the specified assembly with an optional prefix.
+        /// </summary>
+        /// <param name="asm">The assembly containing the resources. If null, the assembly of the caller will be used.</param>
+        /// <param name="prefix">The prefix path to the root of the tree to be constructed, or null for the root of the assembly's resource tree.</param>
+        /// <param name="asmPre">If true, prefix the assembly's name. If false, this must be done manually.</param>
         public ResourceTree(
             Assembly? asm = null,
             string? prefix = null,
@@ -271,7 +400,7 @@ namespace MM2Randomizer.Resources
                     = newParts.Take(numDirParts).Append(name).ToArray();
             }
 
-            // Finally, create the tree
+            // Finally, build the tree from leaves to root
             StringArrayComparaer cmp = new();
             pathsParts.Sort(cmp);
 
@@ -312,9 +441,19 @@ namespace MM2Randomizer.Resources
             }
         }
 
+        /// <summary>
+        /// Try to find a node by path, returning null if it cannot be found.
+        /// </summary>
         public RNode? TryFind(string path) => Root.TryFind(path);
+
+        /// <summary>
+        /// Find a node by path. If the node cannot be found, throw FileNotFoundException.,
+        /// </summary>
         public RNode Find(string path) => Root.Find(path);
 
+        /// <summary>
+        /// Load a node as binary. The node MUST be from the tree.
+        /// </summary>
         public byte[] LoadResource(RNode node)
         {
             Debug.Assert(node.IsFile);
@@ -323,8 +462,14 @@ namespace MM2Randomizer.Resources
                 string.Concat(EffectivePrefix, node.Path), false);
         }
 
+        /// <summary>
+        /// Load a node by path as binary. Shorthand for LoadResource(Find(path)).
+        /// </summary>
         public byte[] LoadResource(string path) => LoadResource(Find(path));
 
+        /// <summary>
+        /// Load a node as text using the specified encoding. The node MUST be from the tree.
+        /// </summary>
         public string LoadResource(RNode node, Encoding enc)
         {
             Debug.Assert(node.IsFile);
@@ -333,9 +478,15 @@ namespace MM2Randomizer.Resources
                 string.Concat(EffectivePrefix, node.Path), enc, false);
         }
 
+        /// <summary>
+        /// Load a node by path as text using the specified encoding.
+        /// </summary>
         public string LoadResource(string path, Encoding enc) 
             => LoadResource(Find(path), enc);
 
+        /// <summary>
+        /// Load a node as UTF-8 text. The node MUST be from the tree.
+        /// </summary>
         public string LoadUtf8Resource(RNode node)
         {
             Debug.Assert(node.IsFile);
@@ -344,6 +495,9 @@ namespace MM2Randomizer.Resources
                 string.Concat(EffectivePrefix, node.Path), false);
         }
 
+        /// <summary>
+        /// Load a node by path as UTF-8 text.
+        /// </summary>
         public string LoadUtf8Resource(string path) => LoadUtf8Resource(Find(path));
 
         public void TestFind()

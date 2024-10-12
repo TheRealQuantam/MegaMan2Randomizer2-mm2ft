@@ -48,6 +48,8 @@ namespace MM2Randomizer
 
         public ResourceTree ResourceTree { get; } = new(null, "Resources");
 
+        public const String TEMPORARY_FILE_NAME = "temp.nes";
+
         //================
         // "CORE" MODULES
         //================
@@ -213,7 +215,8 @@ namespace MM2Randomizer
             // Apply random sprite changes
             if (spriteOpts.RandomizeBossSprites.Value)
             {
-                bossPatches = ApplyOneIpsPerDir("SpritePatches.Bosses");
+                bossPatches = MiscHacks.ApplyOneIpsPerDir(
+                    this, "SpritePatches.Bosses");
                 bossSprites = bossPatches
                     .Where(kv => BossDirNames.ContainsKey(kv.Key.Name))
                     .ToDictionary(kv => BossDirNames[kv.Key.Name], kv => kv.Value);
@@ -221,22 +224,26 @@ namespace MM2Randomizer
 
             if (spriteOpts.RandomizeEnemySprites.Value)
             {
-                enemySprites = ApplyOneIpsPerDir("SpritePatches.Enemies");
+                enemySprites = MiscHacks.ApplyOneIpsPerDir(
+                    this, "SpritePatches.Enemies");
             }
 
             if (spriteOpts.RandomizeSpecialWeaponSprites.Value)
             {
-                weaponSprites = ApplyOneIpsPerDir("SpritePatches.Weapons");
+                weaponSprites = MiscHacks.ApplyOneIpsPerDir(
+                    this, "SpritePatches.Weapons");
             }
 
             if (spriteOpts.RandomizeItemPickupSprites.Value)
             {
-                pickupPatches = ApplyOneIpsPerDir("SpritePatches.Pickups");
+                pickupPatches = MiscHacks.ApplyOneIpsPerDir(
+                    this, "SpritePatches.Pickups");
             }
 
             if (spriteOpts.RandomizeEnvironmentSprites.Value)
             {
-                envSprites = ApplyOneIpsPerDir("SpritePatches.Environment");
+                envSprites = MiscHacks.ApplyOneIpsPerDir(
+                    this, "SpritePatches.Environment");
             }
 
 
@@ -278,8 +285,8 @@ namespace MM2Randomizer
             // Apply random sprite changes
             if (cosmOpts.RandomizeMenusAndTransitionScreens.Value)
             {
-                screenPatches = ApplyOneIpsPerDir(
-                    "SpritePatches.MenusAndTransitionScreens");
+                screenPatches = MiscHacks.ApplyOneIpsPerDir(
+                    this, "SpritePatches.MenusAndTransitionScreens");
             }
 
 
@@ -439,8 +446,6 @@ namespace MM2Randomizer
         // Private Data Members
         //
 
-        private const String TEMPORARY_FILE_NAME = "temp.nes";
-
         private static readonly Dictionary<string, EBossIndex> BossDirNames = new()
         {
             { "AirMan", EBossIndex.Air },
@@ -457,50 +462,5 @@ namespace MM2Randomizer
             { "QuickMan", EBossIndex.Quick },
             { "WoodMan", EBossIndex.Wood },
         };
-
-        private Dictionary<ResourceNode, ResourceNode?> ApplyOneIpsPerDir(
-            string in_BasePath, 
-            bool in_CanBeNull = true,
-            ISeed? in_Seed = null,
-            Patch? in_Patch = null,
-            string? in_OutFileName = null,
-            ResourceTree? in_ResTree = null)
-        {
-            if (in_Seed is null)
-                in_Seed = this.Seed;
-            if (in_Patch is null)
-                in_Patch = this.Patch;
-            if (in_OutFileName is null)
-                in_OutFileName = RandomizationContext.TEMPORARY_FILE_NAME;
-            if (in_ResTree is null)
-                in_ResTree = ResourceTree;
-
-            var relRoot = in_ResTree.Find(in_BasePath);
-
-            Dictionary<ResourceNode, ResourceNode?> selDirNodes = new(ReferenceEqualityComparer.Instance);
-            foreach (var dirNode in relRoot.Descendants.Where(x => !x.IsFile))
-            {
-                var fileNodes = dirNode.Files.Select(x => (ResourceNode?)x).ToList();
-                if (in_CanBeNull)
-                    fileNodes.Add(null);
-
-                if (fileNodes.Count == 0)
-                    continue;
-
-                var selNode = in_Seed.NextElement(fileNodes);
-                selDirNodes[dirNode] = selNode;
-            }
-
-            foreach (var (dirNode, fileNode) in selDirNodes)
-            {
-                if (fileNode is null)
-                    continue;
-
-                var ips = in_ResTree.LoadResource(fileNode);
-                in_Patch.ApplyIPSPatch(in_OutFileName, ips);
-            }
-
-            return selDirNodes;
-        }
     }
 }

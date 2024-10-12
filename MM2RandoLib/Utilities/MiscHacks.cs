@@ -7,6 +7,7 @@ using System.Reflection;
 using MM2Randomizer.Enums;
 using MM2Randomizer.Extensions;
 using MM2Randomizer.Patcher;
+using MM2Randomizer.Random;
 using MM2Randomizer.Randomizers;
 using MM2Randomizer.Randomizers.Stages;
 using MM2Randomizer.Resources;
@@ -17,6 +18,60 @@ namespace MM2Randomizer.Utilities
 {
     public static class MiscHacks
     {
+        public static Dictionary<ResourceNode, ResourceNode?> ApplyOneIpsPerDir(
+            RandomizationContext context,
+            string basePath,
+            bool canBeNull = true,
+            ISeed? seed = null,
+            Patch? patch = null,
+            string? outFileName = null,
+            ResourceTree? resTree = null)
+        {
+            if (seed is null)
+                seed = context.Seed;
+            if (patch is null)
+                patch = context.Patch;
+            if (outFileName is null)
+                outFileName = RandomizationContext.TEMPORARY_FILE_NAME;
+            if (resTree is null)
+                resTree = context.ResourceTree;
+
+            return ApplyOneIpsPerDir(
+                resTree,
+                seed,
+                patch,
+                basePath,
+                canBeNull,
+                outFileName);
+        }
+
+        public static  Dictionary<ResourceNode, ResourceNode?> ApplyOneIpsPerDir(
+            ResourceTree resTree,
+            ISeed seed,
+            Patch patch,
+            string basePath,
+            bool canBeNull,
+            string outFileName)
+        {
+            var relRoot = resTree.Find(basePath);
+            var selDirNodes = relRoot.PickOneFilePerDirectory(
+                seed, 
+                canBeNull,
+                null,
+                n => n.Name.EndsWith(".ips", StringComparison.InvariantCultureIgnoreCase));
+
+            foreach (var (dirNode, fileNode) in selDirNodes)
+            {
+                if (fileNode is null)
+                    continue;
+
+                var ips = resTree.LoadResource(fileNode);
+                patch.ApplyIPSPatch(outFileName, ips);
+            }
+
+            return selDirNodes;
+        }
+
         public static void DrawTitleScreenChanges(Patch p, String in_SeedBase26, RandomizationSettings settings)
         {
             // Adjust cursor positions
@@ -539,7 +594,10 @@ namespace MM2Randomizer.Utilities
             p.Add(etankSubLocation, eTankSubroutineBytes, "Prevent E-Tank Use at Full Life");
         }
 
-        private static byte[]? GetMegaManSpriteIps(
+        /// <summary>
+        /// Load the IPS for the specified Mega Man player sprite, or null if the specified sprite is the default. Throws FileNotFoundException if the sprite cannot be found (should never happen).
+        /// </summary>
+        private static byte[]? LoadMegaManSpriteIps(
             ResourceTree resTree,
             PlayerSpriteOption sprite)
         {
@@ -603,15 +661,20 @@ namespace MM2Randomizer.Utilities
 #if DEBUG
             // Verify all sprites work
             foreach (var spriteValue in Enum.GetValues<PlayerSpriteOption>())
-                GetMegaManSpriteIps(resTree, spriteValue);
+                LoadMegaManSpriteIps(resTree, spriteValue);
 #endif
 
-            var ips = GetMegaManSpriteIps(resTree, sprite);
+            var ips = LoadMegaManSpriteIps(resTree, sprite);
             if (ips is not null)
                 p.ApplyIPSPatch(tempFileName, ips);
         }
 
-        private static byte[] GetEnumBasedIps<TEnum>(
+        /// <summary>
+        /// Loads the IPS patch corresponding to the specified enum value. Throws FileNotFoundException if the specified patch cannot be found (should never happen).
+        /// </summary>
+        /// <param name="basePath">The base path of which all options are descendants.</param>
+        /// <param name="fallbackPrefix">If a resource of the form $"{basePath}.{value.ToString()}.ips" cannot be found, try $"{basePath}.{fallbackPrefix}{value.ToString()}.ips".</param>
+        private static byte[] LoadEnumBasedIps<TEnum>(
             ResourceTree resTree, 
             string basePath,
             string? fallbackPrefix,
@@ -636,6 +699,14 @@ namespace MM2Randomizer.Utilities
             return resTree.LoadResource(node);
         }
 
+        /// <summary>
+        /// Applies the IPS patch corresponding to the specified enum value. Throws FileNotFoundException if the specified patch cannot be found (should never happen).
+        /// </summary>
+        /// <param name="p">The patcher.</param>
+        /// <param name="tempFileName">The filename to apply the patch to.</param>
+        /// <param name="basePath">The base path of which all options are descendants.</param>
+        /// <param name="fallbackPrefix">If a resource of the form $"{basePath}.{value.ToString()}.ips" cannot be found, try $"{basePath}.{fallbackPrefix}{value.ToString()}.ips".</param>
+        /// <param name="defaultValue">The value of TEnum which corresponds to no patch being applied.</param>
         private static void ApplyEnumBasedIps<TEnum>(
             ResourceTree resTree,
             Patch p,
@@ -650,7 +721,7 @@ namespace MM2Randomizer.Utilities
             foreach (var testValue in Enum.GetValues<TEnum>())
                 if (defaultValue is null 
                     || !testValue.Equals(defaultValue))
-                    GetEnumBasedIps(
+                    LoadEnumBasedIps(
                         resTree, 
                         basePath,
                         fallbackPrefix,
@@ -660,7 +731,7 @@ namespace MM2Randomizer.Utilities
             if (defaultValue is not null && value.Equals(defaultValue))
                 return;
 
-            var ips = GetEnumBasedIps(
+            var ips = LoadEnumBasedIps(
                 resTree, basePath, fallbackPrefix, value);
             p.ApplyIPSPatch(tempFileName, ips);
         }
