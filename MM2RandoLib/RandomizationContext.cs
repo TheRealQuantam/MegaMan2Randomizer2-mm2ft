@@ -139,6 +139,8 @@ namespace MM2Randomizer
 #if DEBUG
             ResourceTree.TestFind();
             ResourceTree.TestPaths();
+
+            MiscHacks.FindAllPatchesWithCommonBankChanges(ResourceTree);
 #endif
 
             Dictionary<ResourceNode, ResourceNode?>? bossPatches = null,

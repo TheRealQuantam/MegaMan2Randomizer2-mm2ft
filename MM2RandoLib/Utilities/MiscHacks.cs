@@ -669,7 +669,7 @@ namespace MM2Randomizer.Utilities
 
             var ips = LoadMegaManSpriteIps(resTree, sprite);
             if (ips is not null)
-                p.ApplyIPSPatch(tempFileName, ips, false);
+                p.ApplyIPSPatch(tempFileName, ips);
         }
 
         /// <summary>
@@ -943,6 +943,23 @@ namespace MM2Randomizer.Utilities
         public static void EnableBirdEggFix(ResourceTree resTree, Patch p, String tempFileName)
         {
             p.ApplyIPSPatch(tempFileName, resTree.LoadResource("mm2bird_egg_fix.ips"));
+        }
+
+        /// <summary>
+        /// Debugging function that checks all IPS patches for changes to the common bank.
+        /// </summary>
+        public static void FindAllPatchesWithCommonBankChanges(ResourceTree resTree)
+        {
+            List<ResourceNode> nodesWithCmnBankChanges = [];
+            foreach (var node in resTree.AllFiles.Where(n => n.Name.EndsWith(
+                ".ips", StringComparison.InvariantCultureIgnoreCase)))
+            {
+                var patch = resTree.LoadResource(node);
+                if (Patch.EnumIpsSegments(patch).Any(s => s.TgtOffs >= 0x3c010))
+                    nodesWithCmnBankChanges.Add(node);
+            }
+
+            return;
         }
     }
 }

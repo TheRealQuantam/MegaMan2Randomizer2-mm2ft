@@ -1,11 +1,14 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Text;
 
 namespace MM2Randomizer.Patcher
 {
+    public record IpsSegment(Int32 SrcOffs, Int32 Size, Int32 TgtOffs, Boolean IsRle);
+
     public class Patch
     {
         public Dictionary<Int32, ChangeByteRecord> Bytes { get; set; }
@@ -134,55 +137,25 @@ namespace MM2Randomizer.Patcher
         /// </summary>
         /// <param name="romname"></param>
         /// <param name="patchBytes"></param>
-        public void ApplyIPSPatch(String in_FileName, Byte[] in_IpsPatch, Boolean in_RebasePatch = true)
+        /// <param name="in_RebasePatch">If true or false, whether to relocate writes to the vanilla common bank (0x3c010+) to the expanded common bank (0x7c010+). If null, patches will be rebased unless they contain patches above the vanilla ROM size (0x40010+).</param>
+        public void ApplyIPSPatch(String in_FileName, Byte[] in_IpsPatch, Boolean? in_RebasePatch = null)
         {
-            if (in_IpsPatch.Length < 5)
-            {
-                throw new ArgumentException(@"The IPS patch data is not valid", nameof(in_IpsPatch));
-            }
+            var ipsSegs = EnumIpsSegments(in_IpsPatch).ToList();
+            Boolean rebasePatch = in_RebasePatch 
+                ?? !ipsSegs.Any(s => s.TgtOffs + s.Size > 0x40010);
 
-            // Read the first 5 bytes of the patch. An IPS patch will always
-            // begin with "PATCH"
-            String ipsPatchHeader = Encoding.ASCII.GetString(in_IpsPatch, 0, 5);
-
-            if (@"PATCH" != ipsPatchHeader)
-            {
-                throw new ArgumentException(@"The IPS patch header is not valid", nameof(in_IpsPatch));
-            }
-
-            FileStream romStream = new FileStream(
+            using (FileStream romStream = new FileStream(
                 in_FileName,
                 FileMode.Open,
                 FileAccess.ReadWrite,
-                FileShare.ReadWrite);
-
-            Boolean endOfFile = false;
-
-            using (romStream)
+                FileShare.ReadWrite))
             {
                 Int64 romLength = romStream.Length;
-
-                Int32 currentIndex = 5;
-
-                while (currentIndex < in_IpsPatch.Length && false == endOfFile)
+                foreach (var seg in ipsSegs)
                 {
-                    // Get the next three bytes. These combine to make the next
-                    // 24-bit offset into the file
-                    Byte offsetHighByte = in_IpsPatch[currentIndex++];
-                    Byte offsetMiddleByte = in_IpsPatch[currentIndex++];
-                    Byte offsetLowByte = in_IpsPatch[currentIndex++];
-
-                    Int32 offset =
-                        (0x10000 * offsetHighByte) +
-                        (0x100 * offsetMiddleByte) +
-                        offsetLowByte;
-
-                    Byte recordHighByte = in_IpsPatch[currentIndex++];
-                    Byte recordLowByte = in_IpsPatch[currentIndex++];
-
-                    Int32 recordSize = (0x100 * recordHighByte) + recordLowByte;
-
-                    if (in_RebasePatch)
+                    Int32 offset = seg.TgtOffs,
+                        recordSize = seg.Size;
+                    if (rebasePatch)
                     {
                         if (offset + recordSize > 0x40010)
                             throw new ArgumentException(@"The IPS patch contains unrebasable changes");
@@ -194,54 +167,93 @@ namespace MM2Randomizer.Patcher
                             throw new NotImplementedException(@"Patches with changes that cross the bank $e/f boundary are not supported");
                     }
 
+                    romStream.Seek(offset, SeekOrigin.Begin);
+
                     // IPS Record
-                    if (recordSize > 0)
+                    if (!seg.IsRle)
                     {
-                        // This is the simple case. Seek into the file at the
-                        // specified offset, write the data that comes after
-                        // the record size, and increment the current patch
-                        // index by the size of the record
-                        romStream.Seek(offset, SeekOrigin.Begin);
-                        romStream.Write(in_IpsPatch, currentIndex, recordSize);
-                        currentIndex = currentIndex + recordSize;
+                        romStream.Write(in_IpsPatch, seg.SrcOffs, recordSize);
                     }
                     // IPS RLE Record
                     else
                     {
-                        // This is the repeat value case. Read the repeat count
-                        // and the value to repeat. Seek into the file at the
-                        // specified offset, and write the value the number of
-                        // times specified by the repeat count.
-                        Byte repeatCountHighByte = in_IpsPatch[currentIndex++];
-                        Byte repeatCountLowByte = in_IpsPatch[currentIndex++];
-
-                        Int32 repeatCount =
-                            (0x100 * repeatCountHighByte) +
-                            repeatCountLowByte;
-
-                        Byte repeatByteValue = in_IpsPatch[currentIndex++];
-
                         // Initialize an array of bytes to the specified value
-                        Byte[] repeatBuffer = new Byte[repeatCount];
-                        Array.Fill(repeatBuffer, repeatByteValue);
+                        Byte[] repeatBuffer = new Byte[recordSize];
+                        Array.Fill(repeatBuffer, in_IpsPatch[seg.SrcOffs]);
 
-                        romStream.Seek(offset, SeekOrigin.Begin);
                         romStream.Write(repeatBuffer);
                     }
+                }
+            }
+        }
 
-                    // Check for the end-of-file
-                    String ipsPatchEof = Encoding.ASCII.GetString(in_IpsPatch, currentIndex, 3);
-                    endOfFile = (@"EOF" == ipsPatchEof);
+        public static IEnumerable<IpsSegment> EnumIpsSegments(Byte[] in_IpsPatch)
+        {
+            if (in_IpsPatch.Length < 5)
+                throw new ArgumentException(@"The IPS patch data is not valid", nameof(in_IpsPatch));
+
+            // Read the first 5 bytes of the patch. An IPS patch will always
+            // begin with "PATCH"
+            String ipsPatchHeader = Encoding.ASCII.GetString(in_IpsPatch, 0, 5);
+
+            if (@"PATCH" != ipsPatchHeader)
+                throw new ArgumentException(@"The IPS patch header is not valid", nameof(in_IpsPatch));
+
+            Boolean badPatch = false;
+            Int32 currentIndex = 5;
+            while (currentIndex + 7 <= in_IpsPatch.Length)
+            {
+                // Get the next three bytes. These combine to make the next
+                // 24-bit offset into the file
+                Byte offsetHighByte = in_IpsPatch[currentIndex++];
+                Byte offsetMiddleByte = in_IpsPatch[currentIndex++];
+                Byte offsetLowByte = in_IpsPatch[currentIndex++];
+
+                Int32 offset =
+                    (0x10000 * offsetHighByte) +
+                    (0x100 * offsetMiddleByte) +
+                    offsetLowByte;
+
+                Byte recordHighByte = in_IpsPatch[currentIndex++];
+                Byte recordLowByte = in_IpsPatch[currentIndex++];
+
+                Int32 recordSize = (0x100 * recordHighByte) + recordLowByte;
+                Int32 srcSizeLeft = recordSize != 0 ? recordSize : 3;
+
+                if (currentIndex + srcSizeLeft + 3 > in_IpsPatch.Length)
+                {
+                    badPatch = true;
+                    break;
                 }
 
-                romStream.Close();
+                // IPS Record
+                if (recordSize > 0)
+                {
+                    yield return new IpsSegment(currentIndex, recordSize, offset, false);
+
+                    currentIndex = currentIndex + recordSize;
+                }
+                // IPS RLE Record
+                else
+                {
+                    Byte repeatCountHighByte = in_IpsPatch[currentIndex++];
+                    Byte repeatCountLowByte = in_IpsPatch[currentIndex++];
+
+                    Int32 repeatCount =
+                        (0x100 * repeatCountHighByte) +
+                        repeatCountLowByte;
+
+                    yield return new IpsSegment(currentIndex, repeatCount, offset, true);
+
+                    currentIndex++;
+                }
             }
 
-            // The IPS patch was not properly terminated
-            if (false == endOfFile)
-            {
+            if (badPatch 
+                || in_IpsPatch.Length < currentIndex + 3
+                || Encoding.ASCII.GetString(in_IpsPatch, currentIndex, 3) != @"EOF")
+                // The IPS patch was not properly terminated
                 throw new ArgumentException(@"The IPS patch data is not properly terminated", nameof(in_IpsPatch));
-            }
         }
     }
 }
