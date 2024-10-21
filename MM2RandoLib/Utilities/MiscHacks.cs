@@ -25,7 +25,8 @@ namespace MM2Randomizer.Utilities
             ISeed? seed = null,
             Patch? patch = null,
             string? outFileName = null,
-            ResourceTree? resTree = null)
+            ResourceTree? resTree = null,
+            bool rebasePatch = true)
         {
             if (seed is null)
                 seed = context.Seed;
@@ -42,7 +43,8 @@ namespace MM2Randomizer.Utilities
                 patch,
                 basePath,
                 canBeNull,
-                outFileName);
+                outFileName,
+                rebasePatch);
         }
 
         public static  Dictionary<ResourceNode, ResourceNode?> ApplyOneIpsPerDir(
@@ -51,7 +53,8 @@ namespace MM2Randomizer.Utilities
             Patch patch,
             string basePath,
             bool canBeNull,
-            string outFileName)
+            string outFileName,
+            bool rebasePatch = true)
         {
             var relRoot = resTree.Find(basePath);
             var selDirNodes = relRoot.PickOneFilePerDirectory(
@@ -66,7 +69,7 @@ namespace MM2Randomizer.Utilities
                     continue;
 
                 var ips = resTree.LoadResource(fileNode);
-                patch.ApplyIPSPatch(outFileName, ips);
+                patch.ApplyIPSPatch(outFileName, ips, rebasePatch);
             }
 
             return selDirNodes;
@@ -712,6 +715,7 @@ namespace MM2Randomizer.Utilities
         /// <param name="basePath">The base path of which all options are descendants.</param>
         /// <param name="fallbackPrefix">If a resource of the form $"{basePath}.{value.ToString()}.ips" cannot be found, try $"{basePath}.{fallbackPrefix}{value.ToString()}.ips".</param>
         /// <param name="defaultValue">The value of TEnum which corresponds to no patch being applied.</param>
+        /// <param name="rebasePatch">The patch is not aware of the relocation of the common bank and should be rebased.</param>
         private static void ApplyEnumBasedIps<TEnum>(
             ResourceTree resTree,
             Patch p,
@@ -719,7 +723,8 @@ namespace MM2Randomizer.Utilities
             string basePath,
             string? fallbackPrefix,
             TEnum? defaultValue,
-            TEnum value)
+            TEnum value,
+            bool rebasePatch = true)
             where TEnum : struct, Enum
         {
 #if DEBUG
@@ -738,7 +743,7 @@ namespace MM2Randomizer.Utilities
 
             var ips = LoadEnumBasedIps(
                 resTree, basePath, fallbackPrefix, value);
-            p.ApplyIPSPatch(tempFileName, ips);
+            p.ApplyIPSPatch(tempFileName, ips, rebasePatch);
         }
 
         /// <summary>
@@ -964,6 +969,23 @@ namespace MM2Randomizer.Utilities
         public static void EnableBirdEggFix(ResourceTree resTree, Patch p, String tempFileName)
         {
             p.ApplyIPSPatch(tempFileName, resTree.LoadResource("mm2bird_egg_fix.ips"));
+        }
+
+        /// <summary>
+        /// Debugging function that checks all IPS patches for changes to the common bank.
+        /// </summary>
+        public static void FindAllPatchesWithCommonBankChanges(ResourceTree resTree)
+        {
+            List<ResourceNode> nodesWithCmnBankChanges = [];
+            foreach (var node in resTree.AllFiles.Where(n => n.Name.EndsWith(
+                ".ips", StringComparison.InvariantCultureIgnoreCase)))
+            {
+                var patch = resTree.LoadResource(node);
+                if (Patch.EnumIpsSegments(patch).Any(s => s.TgtOffs >= 0x3c010))
+                    nodesWithCmnBankChanges.Add(node);
+            }
+
+            return;
         }
     }
 }
