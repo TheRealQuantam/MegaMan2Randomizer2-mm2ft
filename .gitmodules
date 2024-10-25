@@ -3,3 +3,6 @@
 	url = https://github.com/TheRealQuantam/FtRandoLib.git
 	branch = main
 	
+[submodule "js65"]
+	path = js65
+	url = https://github.com/shicks/js65.git

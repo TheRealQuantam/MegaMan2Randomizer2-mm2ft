@@ -966,11 +966,6 @@ namespace MM2Randomizer.Utilities
             p.ApplyIPSPatch(tempFileName, resTree.LoadResource("mercilesspatch.ips"));
         }
 
-        public static void EnableBirdEggFix(ResourceTree resTree, Patch p, String tempFileName)
-        {
-            p.ApplyIPSPatch(tempFileName, resTree.LoadResource("mm2bird_egg_fix.ips"));
-        }
-
         /// <summary>
         /// Debugging function that checks all IPS patches for changes to the common bank.
         /// </summary>

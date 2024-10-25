@@ -50,18 +50,20 @@
       <Compile Remove="Resources\SpritePatches\WeaponSpriteRandomizer.cs" />
     </ItemGroup>
     <ItemGroup>
+      <None Remove="Resources\Asm\bird_egg_fix.asm" />
+      <None Remove="Resources\Asm\config.asm" />
+      <None Remove="Resources\Asm\leftward_wall_ejection.asm" />
+      <None Remove="Resources\Asm\merciless.asm" />
+      <None Remove="Resources\Asm\mm2r.inc" />
+      <None Remove="Resources\Asm\pause_with_items.asm" />
       <None Remove="Resources\Batton_Batman.ips" />
       <None Remove="Resources\EnemySet.xml" />
       <None Remove="Resources\EnemyWeaknessSet.xml" />
       <None Remove="Resources\FtSoundTrackConfiguration.json5" />
-      <None Remove="Resources\leftwardwallejectionpatch.ips" />
       <None Remove="Resources\level_components.json" />
-      <None Remove="Resources\mercilesspatch.ips" />
-      <None Remove="Resources\mm2bird_egg_fix.ips" />
       <None Remove="Resources\mm2clown_bot_fix.ips" />
       <None Remove="Resources\mm2ft.ips" />
       <None Remove="Resources\mm2rng_prepatch.ips" />
-      <None Remove="Resources\pausepatch.ips" />
       <None Remove="Resources\PlayerCharacter_BadBoxArt.ips" />
       <None Remove="Resources\PlayerCharacter_Stantler.ips" />
       <None Remove="Resources\SniperJoeAndSniperArmor_CBSDOat.ips" />
@@ -681,16 +683,18 @@
       <None Remove="Resources\SpritePatches\Weapons\TimeStopper\TimeStopper_RockMan2Plus.ips" />
     </ItemGroup>
     <ItemGroup>
+      <EmbeddedResource Include="Resources\Asm\bird_egg_fix.asm" />
+      <EmbeddedResource Include="Resources\Asm\config.asm" />
+      <EmbeddedResource Include="Resources\Asm\leftward_wall_ejection.asm" />
+      <EmbeddedResource Include="Resources\Asm\merciless.asm" />
+      <EmbeddedResource Include="Resources\Asm\mm2r.inc" />
+      <EmbeddedResource Include="Resources\Asm\pause_with_items.asm" />
       <EmbeddedResource Include="Resources\EnemySet.xml" />
       <EmbeddedResource Include="Resources\EnemyWeaknessSet.xml" />
       <EmbeddedResource Include="Resources\FtSoundTrackConfiguration.json5" />
-      <EmbeddedResource Include="Resources\leftwardwallejectionpatch.ips" />
       <EmbeddedResource Include="Resources\level_components.json" />
-      <EmbeddedResource Include="Resources\mercilesspatch.ips" />
-      <EmbeddedResource Include="Resources\mm2bird_egg_fix.ips" />
       <EmbeddedResource Include="Resources\mm2ft.ips" />
       <EmbeddedResource Include="Resources\mm2rng_prepatch.ips" />
-      <EmbeddedResource Include="Resources\pausepatch.ips" />
       <EmbeddedResource Include="Resources\SoundTrackConfiguration.json5" />
       <EmbeddedResource Include="Resources\SpritePatches\Bosses\AirMan\AirMan_Another.ips" />
       <EmbeddedResource Include="Resources\SpritePatches\Bosses\AirMan\AirMan_CutMansBadScissorsDay.ips" />
@@ -1388,6 +1392,7 @@
     </ItemGroup>
     <ItemGroup>
       <ProjectReference Include="..\FtRandoLib\FtRandoLib.csproj" />
+      <ProjectReference Include="..\js65\integrations\dotnet\js65\js65.csproj" />
     </ItemGroup>
     <ItemGroup>
       <None Update="Resources\mm2rng_prepatch.asm">

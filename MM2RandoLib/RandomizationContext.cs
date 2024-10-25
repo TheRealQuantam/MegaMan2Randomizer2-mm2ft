@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
+using js65;
 using MM2Randomizer.Enums;
 using MM2Randomizer.Patcher;
 using MM2Randomizer.Random;
@@ -18,6 +19,8 @@ using MM2Randomizer.Utilities;
 
 namespace MM2Randomizer
 {
+    using AsmEngine = ClearScriptEngine;
+
     public class RandomizationContext
     {
         internal record WriteSpec(int Offs, IReadOnlyList<byte> Data);
@@ -33,8 +36,13 @@ namespace MM2Randomizer
             this.Settings = in_Settings;
             // Create file name based on seed and game region
             this.FileName = $"MM2-RNG-{in_Seed.Identifier} ({in_Seed.SeedString}).nes";
+
+            AsmRoot = ResourceTree.Find("Asm");
         }
 
+        public readonly AsmEngine AsmEngine = new();
+        public readonly Assembler Assembler = new();
+        public readonly ResourceNode AsmRoot;
 
         //
         // Properties
@@ -112,9 +120,25 @@ namespace MM2Randomizer
         // Internal Methods
         //
 
-        internal void Initialize()
+        //// TEMP
+        internal AsmModule AsmModuleFromResource(string path)
+        {
+            var mod = Assembler.Module();
+            mod.Code(ResourceTree.LoadUtf8Resource(AsmRoot.Find(path)), path);
+
+            return mod;
+        }
+
+        internal async void Initialize()
         {
             CreateInitialRom(TEMPORARY_FILE_NAME);
+
+            //// Playground for js65
+            var rom = File.ReadAllBytes(TEMPORARY_FILE_NAME);
+            AsmModuleFromResource("config.asm");
+            AsmModuleFromResource("mm2r.inc");
+            var outRom = await AsmEngine.Apply(rom, Assembler);
+            File.WriteAllBytes(string.Concat("goat ", TEMPORARY_FILE_NAME), outRom);
 
             // In tournament mode, offset the seed by 1 call, making seeds mode-dependent
             /*
@@ -389,22 +413,22 @@ namespace MM2Randomizer
 
             if (qolOpts.EnableLeftwardWallEjection.Value)
             {
-                MiscHacks.EnableLeftwardWallEjection(ResourceTree, this.Patch, RandomizationContext.TEMPORARY_FILE_NAME);
+                AsmModuleFromResource("leftward_wall_ejection.asm");
             }
 
             if (qolOpts.DisablePauseLock.Value)
             {
-                MiscHacks.DisablePauseLock(ResourceTree, this.Patch, RandomizationContext.TEMPORARY_FILE_NAME);
+                AsmModuleFromResource("pause_with_items.asm");
             }
 
             if (gameplayOpts.MercilessMode.Value)
             {
-                MiscHacks.EnableMercilessMode(ResourceTree, this.Patch, RandomizationContext.TEMPORARY_FILE_NAME);
+                AsmModuleFromResource("merciless.asm");
             }
 
             if (qolOpts.EnableBirdEggFix.Value)
             {
-                MiscHacks.EnableBirdEggFix(ResourceTree, this.Patch, RandomizationContext.TEMPORARY_FILE_NAME);
+                AsmModuleFromResource("bird_egg_fix.asm");
             }
 
             if (qolOpts.StageSelectDefault.Value)
@@ -441,6 +465,11 @@ namespace MM2Randomizer
             // can be spawned in the refight teleporter room
             MiscHacks.AddWily5SubroutineWithItemSpawns(this.Patch);
             MiscHacks.AddLargeWeaponEnergyRefillPickupsToWily5TeleporterRoom(this.Patch);
+
+            //// TODO: Move this somewhere better
+            rom = File.ReadAllBytes(TEMPORARY_FILE_NAME);
+            outRom = await AsmEngine.Apply(rom, Assembler);
+            File.WriteAllBytes(TEMPORARY_FILE_NAME, outRom);
 
             // Apply patch with randomized content
             this.Patch.ApplyRandoPatch(RandomizationContext.TEMPORARY_FILE_NAME);
