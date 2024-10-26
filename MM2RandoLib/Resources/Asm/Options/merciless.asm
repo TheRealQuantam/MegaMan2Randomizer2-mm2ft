@@ -44,6 +44,7 @@ CheckLaserContact:
 +
 	jmp $9e80
 
+.reloc
 CheckForLethalContactDamage:
 	lda IframesLeft
 	bne +

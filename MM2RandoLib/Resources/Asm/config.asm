@@ -57,8 +57,9 @@
 FREE "BANKA" [$bb5e, $c000) ; $4a2 bytes
 FREE "BANKB" [$aaaf, $adff] ; $351 bytes
 FREE "BANKC" [$9300, $a000) ; $d00 bytes
-FREE "BANKD" [$bf8e, $bfea) ; $5c bytes (subject to change)
-FREE "BANKE" [$be95, $c000) ; $16b bytes (subject to change)
+FREE "BANKD" [$bf88, $bff8) ; $70 bytes
+; mm2ft uses e:bd24:be4f
+FREE "BANKE" [$be4f, $c000) ; $1b1 bytes
 
 FREE "BANKF" [$ca16, $cb0b] ; $f6 bytes
 FREE "BANKF" [$d0d7, $d0f4] ; $1e bytes

@@ -4,6 +4,7 @@ using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using js65;
+using MM2RandoLib.Settings.Options;
 using MM2Randomizer.Enums;
 using MM2Randomizer.Patcher;
 using MM2Randomizer.Random;
@@ -43,6 +44,7 @@ namespace MM2Randomizer
         public readonly AsmEngine AsmEngine = new();
         public readonly Assembler Assembler = new();
         public readonly ResourceNode AsmRoot;
+        public readonly List<string> DefineSymbolLines = new();
 
         //
         // Properties
@@ -121,13 +123,16 @@ namespace MM2Randomizer
         //
 
         //// TEMP
-        internal AsmModule AsmModuleFromResource(string path)
+        internal AsmModule AsmModuleFromResource(ResourceNode node)
         {
             var mod = Assembler.Module();
-            mod.Code(ResourceTree.LoadUtf8Resource(AsmRoot.Find(path)), path);
+            mod.Code(ResourceTree.LoadUtf8Resource(node), node.Path);
 
             return mod;
         }
+
+        internal AsmModule AsmModuleFromResource(string path)
+            => AsmModuleFromResource(AsmRoot.Find(path));
 
         internal async void Initialize()
         {
@@ -136,9 +141,26 @@ namespace MM2Randomizer
             //// Playground for js65
             var rom = File.ReadAllBytes(TEMPORARY_FILE_NAME);
             AsmModuleFromResource("config.asm");
-            AsmModuleFromResource("mm2r.inc");
+            //AsmModuleFromResource("mm2r.inc");
             var outRom = await AsmEngine.Apply(rom, Assembler);
             File.WriteAllBytes(string.Concat("goat ", TEMPORARY_FILE_NAME), outRom);
+
+            var goat2 = string.Concat("goat2 ", TEMPORARY_FILE_NAME);
+            File.Copy(this.Settings.RomSourcePath, goat2, true);
+            this.Patch.ApplyIPSPatch(
+                goat2, ResourceTree.LoadResource("mm2ft.ips"), false);
+            CopyWilyTilesets(goat2);
+            rom = File.ReadAllBytes(goat2);
+            AsmModuleFromResource("prepatch.asm");
+
+            // Setup the obligatory assembly modules
+            foreach (var node in ResourceTree.Find("Asm.Auto").Files)
+                AsmModuleFromResource(node);
+
+            outRom = await AsmEngine.Apply(rom, Assembler);
+            File.WriteAllBytes(goat2, outRom);
+
+            ApplyOptionActions();
 
             // In tournament mode, offset the seed by 1 call, making seeds mode-dependent
             /*
@@ -351,14 +373,6 @@ namespace MM2Randomizer
             }
 
             // Apply final optional gameplay modifications
-            if (gameplayOpts.FasterCutsceneText.Value)
-            {
-                MiscHacks.SetFastWeaponGetText(this.Patch);
-                MiscHacks.SetFastReadyText(this.Patch);
-                MiscHacks.SetFastWilyMap(this.Patch);
-                MiscHacks.SkipItemGetPages(this.Patch);
-            }
-
             if (gameplayOpts.BurstChaserMode.Value)
             {
                 MiscHacks.SetBurstChaser(this.Patch);
@@ -404,36 +418,6 @@ namespace MM2Randomizer
             if (qolOpts.EnableUnderwaterLagReduction.Value)
             {
                 MiscHacks.ReduceUnderwaterLag(this.Patch);
-            }
-
-            if (qolOpts.DisableWaterfall.Value)
-            {
-                this.Patch.Add(0xFE10, (byte)1, "Disable Bubble Man stage palette animation");
-            }
-
-            if (qolOpts.EnableLeftwardWallEjection.Value)
-            {
-                AsmModuleFromResource("leftward_wall_ejection.asm");
-            }
-
-            if (qolOpts.DisablePauseLock.Value)
-            {
-                AsmModuleFromResource("pause_with_items.asm");
-            }
-
-            if (gameplayOpts.MercilessMode.Value)
-            {
-                AsmModuleFromResource("merciless.asm");
-            }
-
-            if (qolOpts.EnableBirdEggFix.Value)
-            {
-                AsmModuleFromResource("bird_egg_fix.asm");
-            }
-
-            if (qolOpts.StageSelectDefault.Value)
-            {
-                MiscHacks.MakeStageSelectDefault(Patch);
             }
 
             MiscHacks.SetNewMegaManSprite(
@@ -570,6 +554,49 @@ namespace MM2Randomizer
                     new(0xc010 + 0x3d10, Convert.FromHexString("ba040f")), // Wily 4 ref
                     new(0x10010 + 0x3d10, Convert.FromHexString("be020f")), // Wily 5 ref
                 ]);
+        }
+
+        private void ApplyOptionActions()
+        {
+            foreach (var opt in Settings.OptionsWithActions)
+            {
+                foreach (var act in opt.Info!.Actions)
+                {
+                    object? cmpValue = act.OptionValue;
+                    if (cmpValue is null)
+                    {
+                        Debug.Assert(opt is BoolOption);
+
+                        cmpValue = true;
+                    }
+
+                    if (!cmpValue.Equals(opt.Value))
+                        continue;
+
+                    if (act is DefineSymbolAttribute symAct)
+                    {
+                        string valueStr = symAct.Value is not null
+                            ? $" ${symAct.Value:x}"
+                            : "";
+                        DefineSymbolLines.Add(
+                            $".define {symAct.SymbolName}{valueStr}");
+                    }
+                    else if (act is AssembleFileAttribute asmAct)
+                    {
+                        AsmModuleFromResource(asmAct.Path);
+                    }
+                    else
+                    {
+                        var patchAct = (PatchRomAttribute)act;
+                        Patch.Add(
+                            patchAct.RomOffset,
+                            patchAct.Data,
+                            $"Option '{opt.Info.Name}' '{opt.Value}' PatchRom action");
+                    }
+                }
+            }
+
+            return;
         }
 
         //

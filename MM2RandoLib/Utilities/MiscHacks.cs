@@ -191,16 +191,6 @@ namespace MM2Randomizer.Utilities
         }
 
         /// <summary>
-        /// TODO
-        /// </summary>
-        public static void SetFastWeaponGetText(Patch p)
-        {
-            //Int32 address = (jVersion) ? 0x037C51 : 0x037D4A;
-            Int32 address = 0x037D4A;
-            p.Add(address, 0x04, "Weapon Get Text Write Delay");
-        }
-
-        /// <summary>
         /// </summary>
         public static void SetHitPointChargingSpeed(Patch p, ChargingSpeedOption chargingSpeed)
         {
@@ -238,17 +228,6 @@ namespace MM2Randomizer.Utilities
         {
             Int32 address = 0x02E12B;
             p.Add(address, (Byte)chargingSpeed, "Castle Boss Energy Charging Speed");
-        }
-
-        /// <summary>
-        /// This will speed up the wily map cutscene in between Wily stages by about 2 seconds
-        /// </summary>
-        /// <param name="p"></param>
-        public static void SetFastWilyMap(Patch p)
-        {
-            // This is the number of frames to wait after drawing the path on the map before fade out.
-            // Default value 0x7D (125 frames), change to 0x10.
-            p.Add(0x0359B8, 0x10, "Fast Wily Map");
         }
 
         /// <summary>
@@ -350,11 +329,6 @@ namespace MM2Randomizer.Utilities
             p.Add(0x2DF1B, 0x0F, "Alien Explision Flash Color");
         }
 
-        public static void SetFastReadyText(Patch p)
-        {
-            p.Add(0x038147, 0x60, "READY Text Delay");
-        }
-
         /// <summary>
         /// TODO
         /// </summary>
@@ -370,33 +344,6 @@ namespace MM2Randomizer.Utilities
             //Int32 address = (jVersion) ? 0x07D4A4 : 0x07D4A7;
             Int32 address = 0x07D4A7;
             p.Add(address, 0x08, "Buster Projectile X-Velocity Integer");
-        }
-
-        /// <summary>
-        /// Skip 3 of the 4 extra pages of text that occur when receiving an item, and only show
-        /// the last page "GET EQUIPPED WITH ITEM X"
-        /// </summary>
-        /// <param name="p"></param>
-        public static void SkipItemGetPages(Patch p)
-        {
-            // At 0x037C88, A62ABD81C24A09A08D2004EE20044CD0BC
-            p.Add(0x037C88, 0xA6, "Fast Item Get Patch");
-            p.Add(0x037C89, 0x2A, "Fast Item Get Patch");
-            p.Add(0x037C8A, 0xBD, "Fast Item Get Patch");
-            p.Add(0x037C8B, 0x81, "Fast Item Get Patch");
-            p.Add(0x037C8C, 0xC2, "Fast Item Get Patch");
-            p.Add(0x037C8D, 0x4A, "Fast Item Get Patch");
-            p.Add(0x037C8E, 0x09, "Fast Item Get Patch");
-            p.Add(0x037C8F, 0xA0, "Fast Item Get Patch");
-            p.Add(0x037C90, 0x8D, "Fast Item Get Patch");
-            p.Add(0x037C91, 0x20, "Fast Item Get Patch");
-            p.Add(0x037C92, 0x04, "Fast Item Get Patch");
-            p.Add(0x037C93, 0xEE, "Fast Item Get Patch");
-            p.Add(0x037C94, 0x20, "Fast Item Get Patch");
-            p.Add(0x037C95, 0x04, "Fast Item Get Patch");
-            p.Add(0x037C96, 0x4C, "Fast Item Get Patch");
-            p.Add(0x037C97, 0xD0, "Fast Item Get Patch");
-            p.Add(0x037C98, 0xBC, "Fast Item Get Patch");
         }
 
         /// <summary>
@@ -595,11 +542,6 @@ namespace MM2Randomizer.Utilities
             // Start at 0D:BF77 (should be 0x37F87).
             Int32 etankSubLocation = 0xBF77 + prgOffset;
             p.Add(etankSubLocation, eTankSubroutineBytes, "Prevent E-Tank Use at Full Life");
-        }
-
-        public static void MakeStageSelectDefault(Patch patch)
-        {
-            patch.Add(0x37bea, 1, "Set stage select to default option");
         }
 
         /// <summary>
@@ -949,21 +891,6 @@ namespace MM2Randomizer.Utilities
 
             p.Add(LargeWeaponEnergyRefill3_TypeAddress, LargeWeaponEnergyRefillType);
             p.Add(LargeWeaponEnergyRefill4_TypeAddress, LargeWeaponEnergyRefillType);
-        }
-
-        public static void EnableLeftwardWallEjection(ResourceTree resTree, Patch p, String tempFileName)
-        {
-            p.ApplyIPSPatch(tempFileName, resTree.LoadResource("leftwardwallejectionpatch.ips"));
-        }
-
-        public static void DisablePauseLock(ResourceTree resTree, Patch p, String tempFileName)
-        {
-            p.ApplyIPSPatch(tempFileName, resTree.LoadResource("pausepatch.ips"));
-        }
-
-        public static void EnableMercilessMode(ResourceTree resTree, Patch p, String tempFileName)
-        {
-            p.ApplyIPSPatch(tempFileName, resTree.LoadResource("mercilesspatch.ips"));
         }
 
         /// <summary>

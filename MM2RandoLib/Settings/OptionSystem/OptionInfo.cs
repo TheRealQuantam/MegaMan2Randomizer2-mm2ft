@@ -25,11 +25,16 @@ public class OptionInfo
     public bool IsCosmetic { get; }
     public bool CreateControl { get; }
     public bool SaveLoad { get; }
+    public OptionActionAttribute[] Actions { get; }
 
     public string Name => Path[^1].Name;
     public Type Type => Value.Type;
 
-    public OptionInfo(IEnumerable<MemberInfo> path, IOption value, bool isCosmetic)
+    public OptionInfo(
+        IEnumerable<MemberInfo> path, 
+        IOption value, 
+        bool isCosmetic,
+        OptionActionAttribute[]? actions = null)
     {
         Path = path.ToArray();
         GroupPathString = string.Join(".", Path.Take(Path.Length - 1).Select(x => x.Name));
@@ -47,6 +52,7 @@ public class OptionInfo
                 ?? CreateControlAttribute.CreateControlDefault;
         SaveLoad = fieldInfo.GetCustomAttribute<SaveOptionAttribute>()?.Save 
             ?? SaveOptionAttribute.SaveDefault;
+        Actions = actions ?? new OptionActionAttribute[0];
     }
 
     public override string ToString() => PathString;
