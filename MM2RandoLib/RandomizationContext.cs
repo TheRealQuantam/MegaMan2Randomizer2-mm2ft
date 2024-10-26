@@ -123,44 +123,23 @@ namespace MM2Randomizer
         //
 
         //// TEMP
-        internal AsmModule AsmModuleFromResource(ResourceNode node)
+        internal AsmModule AsmModuleFromResource(ResourceNode node, Assembler? asm = null)
         {
+            if (asm is null)
+                asm = Assembler;
+
             var mod = Assembler.Module();
             mod.Code(ResourceTree.LoadUtf8Resource(node), node.Path);
 
             return mod;
         }
 
-        internal AsmModule AsmModuleFromResource(string path)
-            => AsmModuleFromResource(AsmRoot.Find(path));
+        internal AsmModule AsmModuleFromResource(string path, Assembler? asm = null)
+            => AsmModuleFromResource(AsmRoot.Find(path), asm);
 
         internal async void Initialize()
         {
             CreateInitialRom(TEMPORARY_FILE_NAME);
-
-            //// Playground for js65
-            var rom = File.ReadAllBytes(TEMPORARY_FILE_NAME);
-            AsmModuleFromResource("config.asm");
-            //AsmModuleFromResource("mm2r.inc");
-            var outRom = await AsmEngine.Apply(rom, Assembler);
-            File.WriteAllBytes(string.Concat("goat ", TEMPORARY_FILE_NAME), outRom);
-
-            var goat2 = string.Concat("goat2 ", TEMPORARY_FILE_NAME);
-            File.Copy(this.Settings.RomSourcePath, goat2, true);
-            this.Patch.ApplyIPSPatch(
-                goat2, ResourceTree.LoadResource("mm2ft.ips"), false);
-            CopyWilyTilesets(goat2);
-            rom = File.ReadAllBytes(goat2);
-            AsmModuleFromResource("prepatch.asm");
-
-            // Setup the obligatory assembly modules
-            foreach (var node in ResourceTree.Find("Asm.Auto").Files)
-                AsmModuleFromResource(node);
-
-            outRom = await AsmEngine.Apply(rom, Assembler);
-            File.WriteAllBytes(goat2, outRom);
-
-            ApplyOptionActions();
 
             // In tournament mode, offset the seed by 1 call, making seeds mode-dependent
             /*
@@ -188,6 +167,8 @@ namespace MM2Randomizer
 
             MiscHacks.FindAllPatchesWithCommonBankChanges(ResourceTree);
 #endif
+
+            LoadAutoAsmModules();
 
             Dictionary<ResourceNode, ResourceNode?>? bossPatches = null,
                 enemySprites = null,
@@ -312,6 +293,9 @@ namespace MM2Randomizer
             this.Settings.ActualizeCosmeticSettings(this.Seed);
             var cosmOpts = Settings.CosmeticOptions;
 
+            // This must come after all options are actualized
+            ApplyOptionActions();
+
             // List of randomizer modules to use; will add modules based on checkbox states
             List<IRandomizer> cosmeticRandomizers = new List<IRandomizer>();
 
@@ -415,11 +399,6 @@ namespace MM2Randomizer
             MiscHacks.SetFastBossDefeatTeleport(this.Patch);
 
 
-            if (qolOpts.EnableUnderwaterLagReduction.Value)
-            {
-                MiscHacks.ReduceUnderwaterLag(this.Patch);
-            }
-
             MiscHacks.SetNewMegaManSprite(
                 ResourceTree,
                 this.Patch,
@@ -451,9 +430,9 @@ namespace MM2Randomizer
             MiscHacks.AddLargeWeaponEnergyRefillPickupsToWily5TeleporterRoom(this.Patch);
 
             //// TODO: Move this somewhere better
-            rom = File.ReadAllBytes(TEMPORARY_FILE_NAME);
-            outRom = await AsmEngine.Apply(rom, Assembler);
-            File.WriteAllBytes(TEMPORARY_FILE_NAME, outRom);
+            var rom = File.ReadAllBytes(TEMPORARY_FILE_NAME);
+            rom = await AsmEngine.Apply(rom, Assembler);
+            File.WriteAllBytes(TEMPORARY_FILE_NAME, rom);
 
             // Apply patch with randomized content
             this.Patch.ApplyRandoPatch(RandomizationContext.TEMPORARY_FILE_NAME);
@@ -513,17 +492,37 @@ namespace MM2Randomizer
         /// <summary>
         /// Apply the base patches to the ROM that must come before anything else including other IPS files.
         /// </summary>
-        private void CreateInitialRom(string in_RomPath)
+        private async void CreateInitialRom(string in_RomPath)
         {
             File.Copy(this.Settings.RomSourcePath, in_RomPath, true);
 
             // Apply pre-patch changes via IPS patch (manual title screen, stage select, stage changes, player sprite)
             this.Patch.ApplyIPSPatch(
                 in_RomPath, ResourceTree.LoadResource("mm2ft.ips"), false);
-            this.Patch.ApplyIPSPatch(
-                in_RomPath, ResourceTree.LoadResource("mm2rng_prepatch.ips"));
 
             CopyWilyTilesets(in_RomPath);
+
+            var engine = new AsmEngine();
+            var asm = new Assembler();
+            var rom = File.ReadAllBytes(TEMPORARY_FILE_NAME);
+            AsmModuleFromResource("config.asm", asm);
+            //AsmModuleFromResource("mm2r.inc");
+            /*var outRom = await AsmEngine.Apply(rom, Assembler);
+            File.WriteAllBytes(string.Concat("goat ", TEMPORARY_FILE_NAME), outRom);
+
+            var goat2 = string.Concat("goat2 ", TEMPORARY_FILE_NAME);
+            File.Copy(this.Settings.RomSourcePath, goat2, true);
+            this.Patch.ApplyIPSPatch(
+                goat2, ResourceTree.LoadResource("mm2ft.ips"), false);
+            CopyWilyTilesets(goat2);
+            rom = File.ReadAllBytes(goat2);*/
+            AsmModuleFromResource("prepatch.asm", asm);
+
+            /*outRom = await AsmEngine.Apply(rom, Assembler);
+            File.WriteAllBytes(goat2, outRom);*/
+
+            rom = await engine.Apply(rom, asm);
+            File.WriteAllBytes(TEMPORARY_FILE_NAME, rom);
         }
 
         /// <summary>
@@ -554,6 +553,15 @@ namespace MM2Randomizer
                     new(0xc010 + 0x3d10, Convert.FromHexString("ba040f")), // Wily 4 ref
                     new(0x10010 + 0x3d10, Convert.FromHexString("be020f")), // Wily 5 ref
                 ]);
+        }
+
+        private void LoadAutoAsmModules()
+        {
+            AsmModuleFromResource("config.asm");
+
+            // Setup the obligatory assembly modules
+            foreach (var node in ResourceTree.Find("Asm.Auto").Files)
+                AsmModuleFromResource(node);
         }
 
         private void ApplyOptionActions()

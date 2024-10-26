@@ -1,5 +1,7 @@
 ﻿using MM2RandoLib.Settings.Options;
+using MM2Randomizer.Enums;
 using MM2Randomizer.Settings.Options;
+using System;
 using System.ComponentModel;
 
 namespace MM2Randomizer.Settings.OptionGroups
@@ -10,6 +12,8 @@ namespace MM2Randomizer.Settings.OptionGroups
         public BoolOption DisableFlashingEffects { get; } = new(true);
 
         [Description("Reduce Underwater Lag")]
+        // Reduces lag in various places (underwater, end of boss fight, and possibly other places) by disabling a subroutine that just delays until an NMI occurs.
+        [PatchRom((Int32)ESubroutineAddress.WasteAFrame, Opcode6502.RTS)]
         public BoolOption EnableUnderwaterLagReduction { get; } = new(true);
 
         [Description("Disable Waterfall")]

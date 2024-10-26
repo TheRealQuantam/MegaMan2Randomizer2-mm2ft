@@ -752,16 +752,6 @@ namespace MM2Randomizer.Utilities
 
 
         /// <summary>
-        /// Reduces lag in various places (underwater, end of boss fight, and possibly other places) by disabling a subroutine
-        /// that just delays until an NMI occurs.
-        /// </summary>
-        /// <param name="p"></param>
-        public static void ReduceUnderwaterLag(Patch p)
-        {
-            p.Add((Int32)ESubroutineAddress.WasteAFrame, Opcode6502.RTS, "Turn the 'waste a frame' subroutine into a NOP");
-        }
-
-        /// <summary>
         /// This method will modify the game loop to spawn weapon energy
         /// pickups in Wily 5.
         /// 
