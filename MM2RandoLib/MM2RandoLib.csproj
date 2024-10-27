@@ -57,7 +57,6 @@
       <None Remove="Resources\Asm\mm2r.inc" />
       <None Remove="Resources\Asm\Options\bird_egg_fix.asm" />
       <None Remove="Resources\Asm\Options\faster_cutscenes.asm" />
-      <None Remove="Resources\Asm\Options\leftward_wall_ejection.asm" />
       <None Remove="Resources\Asm\Options\merciless.asm" />
       <None Remove="Resources\Asm\Options\pause_with_items.asm" />
       <None Remove="Resources\Asm\prepatch.asm" />
@@ -695,7 +694,6 @@
       <EmbeddedResource Include="Resources\Asm\mm2r.inc" />
       <EmbeddedResource Include="Resources\Asm\Options\bird_egg_fix.asm" />
       <EmbeddedResource Include="Resources\Asm\Options\faster_cutscenes.asm" />
-      <EmbeddedResource Include="Resources\Asm\Options\leftward_wall_ejection.asm" />
       <EmbeddedResource Include="Resources\Asm\Options\merciless.asm" />
       <EmbeddedResource Include="Resources\Asm\Options\pause_with_items.asm" />
       <EmbeddedResource Include="Resources\Asm\prepatch.asm" />

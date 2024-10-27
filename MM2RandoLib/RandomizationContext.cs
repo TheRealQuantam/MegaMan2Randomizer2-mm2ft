@@ -258,29 +258,7 @@ namespace MM2Randomizer
                 Debug.WriteLine(randomizer);
             }
 
-            if (spriteOpts.RandomizeEnemySprites.Value)
-            {
-                enemySprites = MiscHacks.ApplyOneIpsPerDir(
-                    this, "SpritePatches.Enemies");
-            }
-
-            if (spriteOpts.RandomizeSpecialWeaponSprites.Value)
-            {
-                weaponSprites = MiscHacks.ApplyOneIpsPerDir(
-                    this, "SpritePatches.Weapons");
-            }
-
-            if (spriteOpts.RandomizeItemPickupSprites.Value)
-            {
-                pickupPatches = MiscHacks.ApplyOneIpsPerDir(
-                    this, "SpritePatches.Pickups");
-            }
-
-            if (spriteOpts.RandomizeEnvironmentSprites.Value)
-            {
-                envSprites = MiscHacks.ApplyOneIpsPerDir(
-                    this, "SpritePatches.Environment", rebasePatch: false);
-            }
+            ApplyOptionActions(false);
 
 
             ///==========================
@@ -292,9 +270,6 @@ namespace MM2Randomizer
 
             this.Settings.ActualizeCosmeticSettings(this.Seed);
             var cosmOpts = Settings.CosmeticOptions;
-
-            // This must come after all options are actualized
-            ApplyOptionActions();
 
             // List of randomizer modules to use; will add modules based on checkbox states
             List<IRandomizer> cosmeticRandomizers = new List<IRandomizer>();
@@ -319,13 +294,6 @@ namespace MM2Randomizer
             {
                 cosmetic.Randomize(this.Patch, this);
                 Debug.WriteLine(cosmetic);
-            }
-
-            // Apply random sprite changes
-            if (cosmOpts.RandomizeMenusAndTransitionScreens.Value)
-            {
-                screenPatches = MiscHacks.ApplyOneIpsPerDir(
-                    this, "SpritePatches.MenusAndTransitionScreens");
             }
 
 
@@ -384,14 +352,6 @@ namespace MM2Randomizer
                 this.Patch,
                 chargingOpts.EnergyTank.Value);
 
-            MiscHacks.SetRobotMasterEnergyChargingSpeed(
-                this.Patch,
-                chargingOpts.RobotMasterEnergy.Value);
-
-            MiscHacks.SetCastleBossEnergyChargingSpeed(
-                this.Patch,
-                chargingOpts.CastleBossEnergy.Value);
-
             MiscHacks.DrawTitleScreenChanges(this.Patch, this.Seed.Identifier, this.Settings);
             MiscHacks.SetWily5NoMusicChange(this.Patch);
             MiscHacks.NerfDamageValues(this.Patch);
@@ -428,6 +388,8 @@ namespace MM2Randomizer
             // can be spawned in the refight teleporter room
             MiscHacks.AddWily5SubroutineWithItemSpawns(this.Patch);
             MiscHacks.AddLargeWeaponEnergyRefillPickupsToWily5TeleporterRoom(this.Patch);
+
+            ApplyOptionActions(true);
 
             //// TODO: Move this somewhere better
             var rom = File.ReadAllBytes(TEMPORARY_FILE_NAME);
@@ -564,42 +526,69 @@ namespace MM2Randomizer
                 AsmModuleFromResource(node);
         }
 
-        private void ApplyOptionActions()
+        private void ApplyOptionActions(bool cosmOpts)
         {
             foreach (var opt in Settings.OptionsWithActions)
             {
+                if (opt.Info!.IsCosmetic != cosmOpts)
+                    continue;
+
                 foreach (var act in opt.Info!.Actions)
                 {
-                    object? cmpValue = act.OptionValue;
-                    if (cmpValue is null)
+                    if (act is OptionValueActionAttribute valAct)
                     {
-                        Debug.Assert(opt is BoolOption);
+                        object? cmpValue = valAct.OptionValue;
+                        if (cmpValue is null)
+                        {
+                            Debug.Assert(opt is BoolOption);
 
-                        cmpValue = true;
-                    }
+                            cmpValue = true;
+                        }
 
-                    if (!cmpValue.Equals(opt.Value))
-                        continue;
+                        if (!cmpValue.Equals(opt.Value))
+                            continue;
 
-                    if (act is DefineSymbolAttribute symAct)
-                    {
-                        string valueStr = symAct.Value is not null
-                            ? $" ${symAct.Value:x}"
-                            : "";
-                        DefineSymbolLines.Add(
-                            $".define {symAct.SymbolName}{valueStr}");
-                    }
-                    else if (act is AssembleFileAttribute asmAct)
-                    {
-                        AsmModuleFromResource(asmAct.Path);
+                        if (act is DefineSymbolAttribute symAct)
+                        {
+                            string valueStr = symAct.Value is not null
+                                ? $" ${symAct.Value:x}"
+                                : "";
+                            DefineSymbolLines.Add(
+                                $".define {symAct.SymbolName}{valueStr}");
+                        }
+                        else if (act is AssembleFileAttribute asmAct)
+                        {
+                            AsmModuleFromResource(asmAct.Path);
+                        }
+                        else if (act is ApplyOneIpsPerDirAttribute opdAct)
+                        {
+                            MiscHacks.ApplyOneIpsPerDir(
+                                ResourceTree,
+                                Seed,
+                                Patch,
+                                opdAct.RootPath,
+                                opdAct.AllowNone,
+                                TEMPORARY_FILE_NAME,
+                                opdAct.ApplyRebaseIps ? opdAct.RebaseIps : null);
+                        }
+                        else
+                        {
+                            var patchAct = (PatchRomAttribute)act;
+                            Patch.Add(
+                                patchAct.RomOffset,
+                                patchAct.Data,
+                                $"Option '{opt.Info.Name}' '{opt.Value}' PatchRom action");
+                        }
                     }
                     else
                     {
-                        var patchAct = (PatchRomAttribute)act;
+                        var writeAct = (WriteValueToRomAttribute)act;
+                        var type = opt.Info.Type;
+                        int value = (int)opt.Value;
                         Patch.Add(
-                            patchAct.RomOffset,
-                            patchAct.Data,
-                            $"Option '{opt.Info.Name}' '{opt.Value}' PatchRom action");
+                            writeAct.RomOffset,
+                            checked((byte)value),
+                            $"Option '{opt.Info.Name}' '{opt.Value}' WriteValueToRom action");
                     }
                 }
             }

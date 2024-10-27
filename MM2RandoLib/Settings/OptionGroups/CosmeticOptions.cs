@@ -20,6 +20,7 @@ namespace MM2Randomizer.Settings.OptionGroups
         public BoolOption RandomizeInGameText { get; } = new(true);
 
         [Description("Randomize Menus and Transition Screens")]
+        [ApplyOneIpsPerDir("SpritePatches.MenusAndTransitionScreens")]
         public BoolOption RandomizeMenusAndTransitionScreens { get; } = new(true);
 
         [Description("Character")]

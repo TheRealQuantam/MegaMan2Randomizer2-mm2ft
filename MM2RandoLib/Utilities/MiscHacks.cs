@@ -26,7 +26,7 @@ namespace MM2Randomizer.Utilities
             Patch? patch = null,
             string? outFileName = null,
             ResourceTree? resTree = null,
-            bool rebasePatch = true)
+            bool? rebasePatch = null)
         {
             if (seed is null)
                 seed = context.Seed;
@@ -54,7 +54,7 @@ namespace MM2Randomizer.Utilities
             string basePath,
             bool canBeNull,
             string outFileName,
-            bool rebasePatch = true)
+            bool? rebasePatch = null)
         {
             var relRoot = resTree.Find(basePath);
             var selDirNodes = relRoot.PickOneFilePerDirectory(
@@ -163,6 +163,7 @@ namespace MM2Randomizer.Utilities
             }
         }
 
+        //// TODO: Move to asm
         /// <summary>
         /// TODO
         /// </summary>
@@ -172,6 +173,7 @@ namespace MM2Randomizer.Utilities
             p.Add(0x07C1CD, 0xEA, "Disable ETank clear on Game Over 2");
         }
 
+        //// TODO: Move to asm
         /// <summary>
         /// 
         /// </summary>
@@ -214,22 +216,7 @@ namespace MM2Randomizer.Utilities
             p.Add(address, (Byte)chargingSpeed, "Energy Tank Charging Speed");
         }
 
-        /// <summary>
-        /// </summary>
-        public static void SetRobotMasterEnergyChargingSpeed(Patch p, ChargingSpeedOption chargingSpeed)
-        {
-            Int32 address = 0x02C142;
-            p.Add(address, (Byte)chargingSpeed, "Robot Master Energy Charging Speed");
-        }
-
-        /// <summary>
-        /// </summary>
-        public static void SetCastleBossEnergyChargingSpeed(Patch p, ChargingSpeedOption chargingSpeed)
-        {
-            Int32 address = 0x02E12B;
-            p.Add(address, (Byte)chargingSpeed, "Castle Boss Energy Charging Speed");
-        }
-
+        //// TODO: Move to asm
         /// <summary>
         /// This will change the delay defeating a boss and teleporting out of the field to be much shorter.
         /// The victory fanfare will not play, and you teleport out exactly 10 frames after landing the killing
@@ -284,6 +271,7 @@ namespace MM2Randomizer.Utilities
             }
         }
 
+        //// TODO: Move to asm
         internal static void DisableScreenFlashing(Patch p, Boolean enableFasterCutsceneText, Boolean enableRandomizationOfColorPalettes)
         {
             p.Add(0x3412E, 0x1F, "Disable Stage Select Flashing");
@@ -329,6 +317,7 @@ namespace MM2Randomizer.Utilities
             p.Add(0x2DF1B, 0x0F, "Alien Explision Flash Color");
         }
 
+        //// TODO: Move to asm
         /// <summary>
         /// TODO
         /// </summary>
@@ -423,6 +412,7 @@ namespace MM2Randomizer.Utilities
             rText.FixWeaponLetters(Patch, shuffledWeapons);
         }
 
+        //// TODO: Move to asm
         /// <summary>
         /// No longer needed since press is included in enemy damage rando table
         /// </summary>
@@ -431,6 +421,7 @@ namespace MM2Randomizer.Utilities
             Patch.Add(EDmgVsEnemy.DamageP + EDmgVsEnemy.Offset.Press, 0x01, "Buster Damage Against Press");
         }
 
+        //// TODO: Move to asm
         public static void FixM445PaletteGlitch(Patch p)
         {
             for (Int32 i = 0; i < 3; i++)
@@ -439,6 +430,7 @@ namespace MM2Randomizer.Utilities
             }
         }
 
+        //// TODO: Move to asm
         /// <summary>
         /// Manual tuning of specific enemy damage values on top of vanilla MM2.
         /// </summary>
@@ -448,6 +440,7 @@ namespace MM2Randomizer.Utilities
             p.Add(0x7ED6C + 0x61, 0x04, "Woodman's Leaf Shield Attack Nerf");
         }
 
+        //// TODO: Move to asm
         public static void DisableChangkeyMakerPaletteSwap(Patch p)
         {
             // Stop palette change when enemy appears
@@ -465,6 +458,7 @@ namespace MM2Randomizer.Utilities
             p.Add(0x3A564, 0xEA, "Disable Changkey Maker palette swap 2");
         }
 
+        //// TODO: Move to asm
         /// <summary>
         /// Prevents E-Tank use when MegaMan has full life.
         /// </summary>

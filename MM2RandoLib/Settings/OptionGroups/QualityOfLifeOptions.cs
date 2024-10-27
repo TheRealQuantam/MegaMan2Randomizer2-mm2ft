@@ -25,7 +25,7 @@ namespace MM2Randomizer.Settings.OptionGroups
         public BoolOption DisablePauseLock { get; } = new(true);
 
         [Description("Enable Leftward Wall Ejection")]
-        [AssembleFile("Options.pause_with_items.asm")]
+        [PatchRom(0xe, 0x8986, 0x18)] // Change SEC to CLC
         public BoolOption EnableLeftwardWallEjection { get; } = new(false);
 
         [Description("Fix Bird Object Despawn")]

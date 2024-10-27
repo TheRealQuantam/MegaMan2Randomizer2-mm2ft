@@ -9,6 +9,31 @@ namespace MM2RandoLib.Settings.Options;
 [AttributeUsage(AttributeTargets.Field | AttributeTargets.Property, AllowMultiple = true, Inherited = true)]
 public abstract class OptionActionAttribute : Attribute
 {
+
+}
+
+/// <summary>
+/// When applied to an option, writes the integer value of the option (either bool or enum) to the ROM at the specified location.
+/// </summary>
+public sealed class WriteValueToRomAttribute : OptionActionAttribute
+{
+    /// <summary>
+    /// The ROM file offset to write the value.
+    /// </summary>
+    public int RomOffset { get; }
+
+    public WriteValueToRomAttribute(int offset) => RomOffset = offset;
+
+    public WriteValueToRomAttribute(
+        int bankIdx,
+        int address,
+        int bankSize = 0x4000)
+        : this(bankIdx * bankSize + (address % bankSize) + 0x10)
+    { }
+}
+
+public abstract class OptionValueActionAttribute : OptionActionAttribute
+{
     /// <summary>
     /// The value of the option to apply the action to. If null, the default will be used based on the option type. For BoolOptions the default is true.
     /// </summary>
@@ -18,7 +43,7 @@ public abstract class OptionActionAttribute : Attribute
 /// <summary>
 /// When applied to an option, defines a symbol that is provided to assembly modules.
 /// </summary>
-public sealed class DefineSymbolAttribute : OptionActionAttribute
+public sealed class DefineSymbolAttribute : OptionValueActionAttribute
 {
     /// <summary>
     /// The name of the symbol to define.
@@ -36,7 +61,7 @@ public sealed class DefineSymbolAttribute : OptionActionAttribute
 /// <summary>
 /// When applied to an option, causes the specified file to be assembled.
 /// </summary>
-public sealed class AssembleFileAttribute : OptionActionAttribute
+public sealed class AssembleFileAttribute : OptionValueActionAttribute
 {
     /// <summary>
     /// The path of the assembly file relative to the Asm directory.
@@ -46,45 +71,52 @@ public sealed class AssembleFileAttribute : OptionActionAttribute
     public AssembleFileAttribute(string path) => Path = path;
 }
 
-/// <summary>
-/// When applied to an option, performs a simple byte patch at the specified ROM location.
-/// </summary>
-public sealed class PatchRomAttribute : OptionActionAttribute
+public abstract class RomOffsetAttribute : OptionValueActionAttribute
 {
     /// <summary>
     /// The ROM file offset to apply the patch.
     /// </summary>
     public int RomOffset { get; }
 
+    public RomOffsetAttribute(int offset) => RomOffset = offset;
+
+    public RomOffsetAttribute(
+        int bankIdx,
+        int address,
+        int bankSize = 0x4000)
+        : this(bankIdx * bankSize + (address % bankSize) + 0x10)
+    {}
+}
+
+/// <summary>
+/// When applied to an option, performs a simple byte patch at the specified ROM location.
+/// </summary>
+public sealed class PatchRomAttribute : RomOffsetAttribute
+{
     /// <summary>
     /// The data to place at the specified offset.
     /// </summary>
     public byte[] Data { get; }
 
     public PatchRomAttribute(int offset, byte[] data)
-    {
-        RomOffset = offset;
-        Data = data;
-    }
+        : base(offset)
+        => Data = data;
 
     public PatchRomAttribute(int offset, byte data)
         : this(offset, new byte[] { data })
-    {
-    }
+    {}
 
     public PatchRomAttribute(int offset, string hexData)
         : this(offset, Convert.FromHexString(hexData))
-    {
-    }
+    {}
 
     public PatchRomAttribute(
-        int bankIdx, 
-        int address, 
-        byte[] data, 
+        int bankIdx,
+        int address,
+        byte[] data,
         int bankSize = 0x4000)
-        : this(bankIdx * bankSize + (address % bankSize) + 0x10, data)
-    {
-    }
+        : base(bankIdx, address, bankSize)
+        => Data = data;
 
     public PatchRomAttribute(
         int bankIdx, 
@@ -92,8 +124,7 @@ public sealed class PatchRomAttribute : OptionActionAttribute
         byte data, 
         int bankSize = 0x4000)
         : this(bankIdx, address, new byte[] { data }, bankSize)
-    {
-    }
+    {}
 
     public PatchRomAttribute(
         int bankIdx, 
@@ -101,6 +132,30 @@ public sealed class PatchRomAttribute : OptionActionAttribute
         string hexData, 
         int bankSize = 0x4000)
         : this(bankIdx, address, Convert.FromHexString(hexData), bankSize)
-    {
-    }
+    {}
+}
+
+/// <summary>
+/// When applied to an option, applies one IPS file from each subdirectory of the specified root at random.
+/// </summary>
+public sealed class ApplyOneIpsPerDirAttribute : OptionValueActionAttribute
+{
+    /// <summary>
+    /// The root of the subtree to search for subdirectories with IPS files to apply, relative to Resources.
+    /// </summary>
+    public string RootPath { get; }
+
+    /// <summary>
+    /// Whether "none" (no IPS) is a valid choice for each directory.
+    /// </summary>
+    public bool AllowNone { get; init; } = true;
+
+    public bool ApplyRebaseIps { get; init; } = false;
+
+    /// <summary>
+    /// If true IPS writes to the common bank will be automatically relocated (IPS is not aware of the ROM resize), if false they will not (IPS is aware of the ROM resize). If null, IPS writes to the common bank will be rebased only if the IPS makes no writes outside the original ROM size.
+    /// </summary>
+    public bool RebaseIps { get; init; } = true;
+
+    public ApplyOneIpsPerDirAttribute(string rootPath) => RootPath = rootPath;
 }
