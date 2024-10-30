@@ -51,6 +51,7 @@
     </ItemGroup>
     <ItemGroup>
       <None Remove="Resources\Asm\Auto\clown_bot_fix.asm" />
+      <None Remove="Resources\Asm\Auto\etank_refill.asm" />
       <None Remove="Resources\Asm\Auto\fix_password.asm" />
       <None Remove="Resources\Asm\Auto\show_title_logo_sprites.asm" />
       <None Remove="Resources\Asm\config.asm" />
@@ -688,6 +689,7 @@
     </ItemGroup>
     <ItemGroup>
       <EmbeddedResource Include="Resources\Asm\Auto\clown_bot_fix.asm" />
+      <EmbeddedResource Include="Resources\Asm\Auto\etank_refill.asm" />
       <EmbeddedResource Include="Resources\Asm\Auto\fix_password.asm" />
       <EmbeddedResource Include="Resources\Asm\Auto\show_title_logo_sprites.asm" />
       <EmbeddedResource Include="Resources\Asm\config.asm" />

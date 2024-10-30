@@ -24,6 +24,8 @@ namespace MM2Randomizer
 
     public class RandomizationContext
     {
+        internal record OptionAction(IOption Option, OptionActionAttribute Action);
+
         internal record WriteSpec(int Offs, IReadOnlyList<byte> Data);
         internal record BlockCopySpec(int SrcOffs, int TgtOffs, int Size);
 
@@ -45,6 +47,8 @@ namespace MM2Randomizer
         public readonly Assembler Assembler = new();
         public readonly ResourceNode AsmRoot;
         public readonly List<string> DefineSymbolLines = new();
+
+        public readonly Dictionary<IOption, Dictionary<ResourceNode, ResourceNode?>> OneIpsPerDirSelections = new(ReferenceEqualityComparer.Instance);
 
         //
         // Properties
@@ -122,24 +126,12 @@ namespace MM2Randomizer
         // Internal Methods
         //
 
-        //// TEMP
-        internal AsmModule AsmModuleFromResource(ResourceNode node, Assembler? asm = null)
-        {
-            if (asm is null)
-                asm = Assembler;
-
-            var mod = Assembler.Module();
-            mod.Code(ResourceTree.LoadUtf8Resource(node), node.Path);
-
-            return mod;
-        }
-
-        internal AsmModule AsmModuleFromResource(string path, Assembler? asm = null)
-            => AsmModuleFromResource(AsmRoot.Find(path), asm);
-
         internal async void Initialize()
         {
             CreateInitialRom(TEMPORARY_FILE_NAME);
+
+            // Not certain whether this must come first
+            AsmModuleFromResource("config.asm");
 
             // In tournament mode, offset the seed by 1 call, making seeds mode-dependent
             /*
@@ -168,15 +160,7 @@ namespace MM2Randomizer
             MiscHacks.FindAllPatchesWithCommonBankChanges(ResourceTree);
 #endif
 
-            LoadAutoAsmModules();
-
-            Dictionary<ResourceNode, ResourceNode?>? bossPatches = null,
-                enemySprites = null,
-                envSprites = null,
-                screenPatches = null,
-                pickupPatches = null,
-                weaponSprites = null;
-            Dictionary<EBossIndex, ResourceNode?>? bossSprites = null;
+            ParseOptionActions(false);
 
             // List of randomizer modules to use; will add modules based on checkbox states
             List<IRandomizer> randomizers = new List<IRandomizer>();
@@ -235,13 +219,12 @@ namespace MM2Randomizer
                 randomizers.Add(this.RandomTilemap);
             }
 
-            // Apply random sprite changes
             // Boss sprites need to be randomized before running normal randomizers because InvisiPico is a special case
             if (spriteOpts.RandomizeBossSprites.Value)
             {
-                bossPatches = MiscHacks.ApplyOneIpsPerDir(
+                var bossPatches = MiscHacks.ApplyOneIpsPerDir(
                     this, "SpritePatches.Bosses");
-                bossSprites = bossPatches
+                var bossSprites = bossPatches
                     .Where(kv => BossDirNames.ContainsKey(kv.Key.Name))
                     .ToDictionary(kv => BossDirNames[kv.Key.Name], kv => kv.Value);
 
@@ -258,7 +241,7 @@ namespace MM2Randomizer
                 Debug.WriteLine(randomizer);
             }
 
-            ApplyOptionActions(false);
+            ApplyOptionActions();
 
 
             ///==========================
@@ -270,6 +253,8 @@ namespace MM2Randomizer
 
             this.Settings.ActualizeCosmeticSettings(this.Seed);
             var cosmOpts = Settings.CosmeticOptions;
+
+            ParseOptionActions(true);
 
             // List of randomizer modules to use; will add modules based on checkbox states
             List<IRandomizer> cosmeticRandomizers = new List<IRandomizer>();
@@ -346,12 +331,6 @@ namespace MM2Randomizer
                 this.Patch,
                 chargingOpts.WeaponEnergy.Value);
 
-            // PreventETankUseAtFullLife must be applied before SetEnergyTankChargingSpeed
-            MiscHacks.PreventETankUseAtFullLife(this.Patch);
-            MiscHacks.SetEnergyTankChargingSpeed(
-                this.Patch,
-                chargingOpts.EnergyTank.Value);
-
             MiscHacks.DrawTitleScreenChanges(this.Patch, this.Seed.Identifier, this.Settings);
             MiscHacks.SetWily5NoMusicChange(this.Patch);
             MiscHacks.NerfDamageValues(this.Patch);
@@ -389,9 +368,10 @@ namespace MM2Randomizer
             MiscHacks.AddWily5SubroutineWithItemSpawns(this.Patch);
             MiscHacks.AddLargeWeaponEnergyRefillPickupsToWily5TeleporterRoom(this.Patch);
 
-            ApplyOptionActions(true);
-
             //// TODO: Move this somewhere better
+            LoadAutoAsmModules();
+            ApplyOptionActions();
+
             var rom = File.ReadAllBytes(TEMPORARY_FILE_NAME);
             rom = await AsmEngine.Apply(rom, Assembler);
             File.WriteAllBytes(TEMPORARY_FILE_NAME, rom);
@@ -468,20 +448,7 @@ namespace MM2Randomizer
             var asm = new Assembler();
             var rom = File.ReadAllBytes(TEMPORARY_FILE_NAME);
             AsmModuleFromResource("config.asm", asm);
-            //AsmModuleFromResource("mm2r.inc");
-            /*var outRom = await AsmEngine.Apply(rom, Assembler);
-            File.WriteAllBytes(string.Concat("goat ", TEMPORARY_FILE_NAME), outRom);
-
-            var goat2 = string.Concat("goat2 ", TEMPORARY_FILE_NAME);
-            File.Copy(this.Settings.RomSourcePath, goat2, true);
-            this.Patch.ApplyIPSPatch(
-                goat2, ResourceTree.LoadResource("mm2ft.ips"), false);
-            CopyWilyTilesets(goat2);
-            rom = File.ReadAllBytes(goat2);*/
             AsmModuleFromResource("prepatch.asm", asm);
-
-            /*outRom = await AsmEngine.Apply(rom, Assembler);
-            File.WriteAllBytes(goat2, outRom);*/
 
             rom = await engine.Apply(rom, asm);
             File.WriteAllBytes(TEMPORARY_FILE_NAME, rom);
@@ -517,16 +484,10 @@ namespace MM2Randomizer
                 ]);
         }
 
-        private void LoadAutoAsmModules()
-        {
-            AsmModuleFromResource("config.asm");
-
-            // Setup the obligatory assembly modules
-            foreach (var node in ResourceTree.Find("Asm.Auto").Files)
-                AsmModuleFromResource(node);
-        }
-
-        private void ApplyOptionActions(bool cosmOpts)
+        /// <summary>
+        /// Process the list of option actions and, for all applicable to the selected settings, either execute them if they can be executed immediately with no adverse effects or queue them for execution at the proper time. The primary purpose of this is to delay assembly as long as possible to allow the most symbols to be defined, until js65's implementation of .include is fixed.
+        /// </summary>
+        private void ParseOptionActions(bool cosmOpts)
         {
             foreach (var opt in Settings.OptionsWithActions)
             {
@@ -550,51 +511,105 @@ namespace MM2Randomizer
 
                         if (act is DefineSymbolAttribute symAct)
                         {
+                            // Define can be executed immediately
                             string valueStr = symAct.Value is not null
                                 ? $" ${symAct.Value:x}"
                                 : "";
                             DefineSymbolLines.Add(
                                 $".define {symAct.SymbolName}{valueStr}");
                         }
-                        else if (act is AssembleFileAttribute asmAct)
+                        else if (act is PatchRomAttribute patchAct)
                         {
-                            AsmModuleFromResource(asmAct.Path);
-                        }
-                        else if (act is ApplyOneIpsPerDirAttribute opdAct)
-                        {
-                            MiscHacks.ApplyOneIpsPerDir(
-                                ResourceTree,
-                                Seed,
-                                Patch,
-                                opdAct.RootPath,
-                                opdAct.AllowNone,
-                                TEMPORARY_FILE_NAME,
-                                opdAct.ApplyRebaseIps ? opdAct.RebaseIps : null);
-                        }
-                        else
-                        {
-                            var patchAct = (PatchRomAttribute)act;
+                            // Patches are inherently deferred
                             Patch.Add(
                                 patchAct.RomOffset,
                                 patchAct.Data,
                                 $"Option '{opt.Info.Name}' '{opt.Value}' PatchRom action");
                         }
+                        else
+                            OptActsQueue.Add(new(opt, act));
                     }
                     else
                     {
-                        var writeAct = (WriteValueToRomAttribute)act;
-                        var type = opt.Info.Type;
-                        int value = (int)opt.Value;
-                        Patch.Add(
-                            writeAct.RomOffset,
-                            checked((byte)value),
-                            $"Option '{opt.Info.Name}' '{opt.Value}' WriteValueToRom action");
+                        if (act is DefineValueSymbolAttribute symAct)
+                        {
+                            DefineSymbolLines.Add($".define {symAct.SymbolName} ${(int)opt.Value:x}");
+                        }
+                        else if (act is WriteValueToRomAttribute writeAct)
+                        {
+                            // Patches are inherently deferred
+                            var type = opt.Info.Type;
+                            int value = (int)opt.Value;
+                            Patch.Add(
+                                writeAct.RomOffset,
+                                checked((byte)value),
+                                $"Option '{opt.Info.Name}' '{opt.Value}' WriteValueToRom action");
+                        }
+                        else
+                            OptActsQueue.Add(new(opt, act));
                     }
                 }
             }
 
             return;
         }
+
+        private void ApplyOptionActions()
+        {
+            foreach (var (opt, act) in OptActsQueue)
+            {
+                if (act is OptionValueActionAttribute valAct)
+                {
+                    if (act is AssembleFileAttribute asmAct)
+                    {
+                        AsmModuleFromResource(asmAct.Path);
+                    }
+                    else if (act is ApplyOneIpsPerDirAttribute opdAct)
+                    {
+                        var selFiles = MiscHacks.ApplyOneIpsPerDir(
+                            ResourceTree,
+                            Seed,
+                            Patch,
+                            opdAct.RootPath,
+                            opdAct.AllowNone,
+                            TEMPORARY_FILE_NAME,
+                            opdAct.ApplyRebaseIps ? opdAct.RebaseIps : null);
+                        OneIpsPerDirSelections[opt] = selFiles;
+                    }
+                    else
+                        Debug.Assert(false);
+                }
+                else
+                {
+                    Debug.Assert(false);
+                }
+            }
+
+            OptActsQueue.Clear();
+
+            return;
+        }
+
+        private void LoadAutoAsmModules()
+        {
+            // Setup the obligatory assembly modules
+            foreach (var node in ResourceTree.Find("Asm.Auto").Files)
+                AsmModuleFromResource(node);
+        }
+
+        public AsmModule AsmModuleFromResource(ResourceNode node, Assembler? asm = null)
+        {
+            if (asm is null)
+                asm = Assembler;
+
+            var mod = Assembler.Module();
+            mod.Code(string.Join("\n", DefineSymbolLines.Append(ResourceTree.LoadUtf8Resource(node))), node.Path);
+
+            return mod;
+        }
+
+        public AsmModule AsmModuleFromResource(string path, Assembler? asm = null)
+            => AsmModuleFromResource(AsmRoot.Find(path), asm);
 
         //
         // Private Data Members
@@ -616,5 +631,8 @@ namespace MM2Randomizer
             { "QuickMan", EBossIndex.Quick },
             { "WoodMan", EBossIndex.Wood },
         };
+
+        private readonly List<OptionAction> OptActsQueue = new();
+
     }
 }

@@ -13,6 +13,7 @@ namespace MM2Randomizer.Settings.OptionGroups
         public EnumOption<ChargingSpeedOption> WeaponEnergy { get; } = new(ChargingSpeedOption.Fastest);
 
         [Description("Energy Tank Charging Speed")]
+        [DefineValueSymbol("ETANK_REFILL_SPEED_MASK")]
         public EnumOption<ChargingSpeedOption> EnergyTank { get; } = new(ChargingSpeedOption.Fastest);
 
         [Description("Robot Master Energy Charging Speed")]

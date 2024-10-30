@@ -6,10 +6,26 @@ using System.Linq;
 
 namespace MM2RandoLib.Settings.Options;
 
+/// <summary>
+/// Base class for all option action attributes.
+/// </summary>
 [AttributeUsage(AttributeTargets.Field | AttributeTargets.Property, AllowMultiple = true, Inherited = true)]
 public abstract class OptionActionAttribute : Attribute
 {
 
+}
+
+/// <summary>
+/// When applied to an option, defines the specified symbol with the value of the option.
+/// </summary>
+public sealed class DefineValueSymbolAttribute : OptionActionAttribute
+{
+    /// <summary>
+    /// The name of the symbol to define.
+    /// </summary>
+    public string SymbolName { get; }
+
+    public DefineValueSymbolAttribute(string symbol) => SymbolName = symbol;
 }
 
 /// <summary>
@@ -32,6 +48,9 @@ public sealed class WriteValueToRomAttribute : OptionActionAttribute
     { }
 }
 
+/// <summary>
+/// Base class for all option action attributes that are specific to a particular value of that option.
+/// </summary>
 public abstract class OptionValueActionAttribute : OptionActionAttribute
 {
     /// <summary>
