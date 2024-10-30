@@ -66,9 +66,7 @@
       <None Remove="Resources\EnemyWeaknessSet.xml" />
       <None Remove="Resources\FtSoundTrackConfiguration.json5" />
       <None Remove="Resources\level_components.json" />
-      <None Remove="Resources\mm2clown_bot_fix.ips" />
       <None Remove="Resources\mm2ft.ips" />
-      <None Remove="Resources\mm2rng_prepatch.ips" />
       <None Remove="Resources\PlayerCharacter_BadBoxArt.ips" />
       <None Remove="Resources\PlayerCharacter_Stantler.ips" />
       <None Remove="Resources\SniperJoeAndSniperArmor_CBSDOat.ips" />
@@ -704,7 +702,6 @@
       <EmbeddedResource Include="Resources\FtSoundTrackConfiguration.json5" />
       <EmbeddedResource Include="Resources\level_components.json" />
       <EmbeddedResource Include="Resources\mm2ft.ips" />
-      <EmbeddedResource Include="Resources\mm2rng_prepatch.ips" />
       <EmbeddedResource Include="Resources\SoundTrackConfiguration.json5" />
       <EmbeddedResource Include="Resources\SpritePatches\Bosses\AirMan\AirMan_Another.ips" />
       <EmbeddedResource Include="Resources\SpritePatches\Bosses\AirMan\AirMan_CutMansBadScissorsDay.ips" />
