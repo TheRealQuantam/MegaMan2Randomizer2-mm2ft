@@ -163,160 +163,12 @@ namespace MM2Randomizer.Utilities
             }
         }
 
-        //// TODO: Move to asm
-        /// <summary>
-        /// TODO
-        /// </summary>
-        public static void SetETankKeep(Patch p)
-        {
-            p.Add(0x07C1CC, 0xEA, "Disable ETank clear on Game Over 1");
-            p.Add(0x07C1CD, 0xEA, "Disable ETank clear on Game Over 2");
-        }
-
-        //// TODO: Move to asm
-        /// <summary>
-        /// 
-        /// </summary>
-        /// <param name="p"></param>
-        /// <param name="jVersion"></param>
-        public static void SetWily5NoMusicChange(Patch p)
-        {
-            p.Add(0x0383DA, 0xEA, "Disable Music on Boss Defeat 1");
-            p.Add(0x0383DB, 0xEA, "Disable Music on Boss Defeat 2");
-            p.Add(0x0383DC, 0xEA, "Disable Music on Boss Defeat 3");
-            p.Add(0x03848A, 0xEA, "Disable Music on Boss Defeat 4");
-            p.Add(0x03848B, 0xEA, "Disable Music on Boss Defeat 5");
-            p.Add(0x03848C, 0xEA, "Disable Music on Boss Defeat 6");
-            p.Add(0x02E070, 0xEA, "Disable Music on Boss Defeat 7");
-            p.Add(0x02E071, 0xEA, "Disable Music on Boss Defeat 8");
-            p.Add(0x02E072, 0xEA, "Disable Music on Boss Defeat 9");
-        }
-
         /// <summary>
         /// </summary>
         public static void SetEnergyTankChargingSpeed(Patch p, ChargingSpeedOption chargingSpeed)
         {
             Int32 address = 0x0352B2;
             p.Add(address, (Byte)chargingSpeed, "Energy Tank Charging Speed");
-        }
-
-        //// TODO: Move to asm
-        /// <summary>
-        /// This will change the delay defeating a boss and teleporting out of the field to be much shorter.
-        /// The victory fanfare will not play, and you teleport out exactly 10 frames after landing the killing
-        /// blow on a robot master, and faster for Wily bosses as well. This indirectly fixes the issue of
-        /// potentially zipping out of Bubbleman or other robot masters' chambers, since you teleport immediately.
-        /// </summary>
-        /// <param name="p"></param>
-        public static void SetFastBossDefeatTeleport(Patch p)
-        {
-            // 0x02E0AF: Time until teleport after fanfare starts. ($FD, change to $40)
-            // 0x02E0A2: Time until boss-defeat fanfare starts. Note that if set too low without any additional
-            //           changes, a softlock may occur after some Wily bosses. Change from $FD to $10, then
-            //           modify other areas that set the intial value of $05A7 (address storing our comparison).
-            //           It turns out taht Mechadragon, Picopico-kun, and Gutsdozer set the intial value to $70
-            //           (at 0x02D16F). Buebeam has its own special routine with extra explosions, setting the 
-            //           initial value to $80 (at 0x02D386). Wily Machine and Alien do not call these subroutines
-            //           and no further modification is needed.
-            // 0x02D170: Wily 1/2/3 boss defeat, time until fanfare starts. ($70, change to $10)
-            //           Must be less or equal to value above (at 0x02E0A2)
-            // 0x02D386: Buebeam defeat, time until fanfare starts. ($80 change to $10)
-            //           Must be less or equal to value above (at 0x02E0A2)
-            //
-            // The original subroutine that uses 0x02E0A2 is as follows:
-            //
-            // BossDefeatWaitForTeleport:
-            //  0B:A08B: 4E 21 04  LSR $0421    // Not sure what this is for, but it gets zeroed out after a couple loops
-            //  0B:A08E: AD A7 05  LDA $05A7    // $05A7 frequently stores a frame-counter or a 'state' value
-            //  0B:A091: C9 10     CMP #$FD     // Compare value at $05A7 with 0xFD
-            //  0B:A093: B0 04     BCS PlayFanfare_ThenWait  // If value at $05A7 >= 0xFD, jump to PlayFanfare_ThenWait
-            //  0B:A095: EE A7 05  INC $05A7    // Increase value at $05A7 by 1
-            //  0B:A098: 60        RTS          // Return
-            // PlayFanfare_ThenWait:
-            //  0B:A099                         // Play fanfare once, then wait to teleport....
-            //  ...
-            //
-            // When defeating Wily 1, 2, 3, or 4, the BossDefeatWaitForTeleport subroutine is entered for the first time
-            // with $05A7 having a value of 0x70 or 0x80; if you change the comparison value at $2E0A2 from 0xFD to a
-            // value smaller than the intial $05A7, an infinite loop occurs. 
-
-            p.Add(0x02E0AF, 0x40, "Fast Boss Defeat Teleport: Teleport delay after fanfare");
-            p.Add(0x02E0A2, 0x10, "Fast Boss Defeat Teleport: Global delay before fanfare");
-            p.Add(0x02D170, 0x10, "Fast Boss Defeat Teleport: W1/2/3 boss delay before fanfare");
-            p.Add(0x02D386, 0x10, "Fast Boss Defeat Teleport: W4 boss delay before fanfare");
-
-            // Also, NOP out the code that plays the fanfare. It's too distorted sounding when immediately teleporting.
-            // Or TODO in the future, change to a different sound?
-            //  02E0B3: A9 15      LDA #$15       // Let A = the fanfare sound value (15)
-            //  02E0B5: 20 51 C0   JSR PlaySound  // Jump to "PlaySound" function, which plays the value in A
-            for (Int32 i = 0; i < 5; i++)
-            {
-                p.Add(0x02E0B3 + i, 0xEA, "Fast Boss Defeat Teleport: Fanfare sound NOP");
-            }
-        }
-
-        //// TODO: Move to asm
-        internal static void DisableScreenFlashing(Patch p, Boolean enableFasterCutsceneText, Boolean enableRandomizationOfColorPalettes)
-        {
-            p.Add(0x3412E, 0x1F, "Disable Stage Select Flashing");
-            p.Add(0x3596D, 0x0F, "Wily Map Flash Color");
-            if (!enableFasterCutsceneText)
-            {
-                // This sequence is disabled by FastText, and the patch conflicts with it.
-                p.Add(0x37C98, 0x0F, "Item Get Flash Color");
-            }
-
-            p.Add(0x2CA04, 0x0F, "Flash Man Fire Flash Color");
-            p.Add(0x2CC7C, 0x0F, "Metal Man Periodic Flash Color");
-
-            p.Add(0x37A1A, 0xEA, "NOP Ending Palette Flash");
-            p.Add(0x377A5, 0x00, "Disable Ending Screen Flash");
-
-            // Dragon
-            p.Add(0x2D1B2, 0x63, "Dragon Hit Flash Palette Index");
-            p.Add(0x2D187, 0x63, "Dragon Hit Restore Palette Index");
-            if (!enableRandomizationOfColorPalettes)
-            {
-                p.Add(0x2D1B0, 0x37, "Dragon Hit Flash Color");
-                p.Add(0x2D185, 0x27, "Dragon Hit Restore Color");
-            }
-            p.Add(0x2D3A0, 0x0F, "Dragon Defeat Flash Color");
-
-            // Guts Tank
-            p.Add(0x2D661, 0x5C, "Guts Tank Flash Palette Index");
-            // p.Add(0x2D65F, 0x0F, "Guts Tank Flash Color");
-
-            // Wily Machine
-            p.Add(0x2DA96, 0x63, "Wily Machine Flash Palette Index");
-            p.Add(0x2DA23, 0x63, "Wily Machine Restore Palette Index");
-            if (!enableRandomizationOfColorPalettes)
-            {
-                p.Add(0x2DA94, 0x25, "Wily Machine Flash Color");
-                p.Add(0x2DA21, 0x35, "Wily Machine Restore Color");
-            }
-
-            // Alien
-            p.Add(0x2DC97, 0x0F, "Alien Hit Flash Color");
-            p.Add(0x2DD6C, 0x0F, "Alien Defeat Flash Color");
-            p.Add(0x2DF1B, 0x0F, "Alien Explision Flash Color");
-        }
-
-        //// TODO: Move to asm
-        /// <summary>
-        /// TODO
-        /// </summary>
-        public static void SetBurstChaser(Patch p)
-        {
-            p.Add(0x038921, 0x03, "Mega Man Walk X-Velocity Integer");
-            p.Add(0x03892C, 0x00, "Mega Man Walk X-Velocity Fraction");
-            p.Add(0x038922, 0x03, "Mega Man Air X-Velocity Integer");
-            p.Add(0x03892D, 0x00, "Mega Man Air X-Velocity Fraction");
-            p.Add(0x0386EF, 0x01, "Mega Man Ladder Climb Up Integer");
-            p.Add(0x03872E, 0xFE, "Mega Man Ladder Climb Down Integer");
-
-            //Int32 address = (jVersion) ? 0x07D4A4 : 0x07D4A7;
-            Int32 address = 0x07D4A7;
-            p.Add(address, 0x08, "Buster Projectile X-Velocity Integer");
         }
 
         /// <summary>
@@ -394,52 +246,6 @@ namespace MM2Randomizer.Utilities
                 .GetShuffleIndexPermutation()
                 .ToDictionary(x => x.Key.ToWeaponIndex(), x => x.Value.ToWeaponIndex());
             rText.FixWeaponLetters(Patch, shuffledWeapons);
-        }
-
-        //// TODO: Move to asm
-        /// <summary>
-        /// No longer needed since press is included in enemy damage rando table
-        /// </summary>
-        public static void EnablePressDamage(Patch Patch)
-        {
-            Patch.Add(EDmgVsEnemy.DamageP + EDmgVsEnemy.Offset.Press, 0x01, "Buster Damage Against Press");
-        }
-
-        //// TODO: Move to asm
-        public static void FixM445PaletteGlitch(Patch p)
-        {
-            for (Int32 i = 0; i < 3; i++)
-            {
-                p.Add(0x395BD + i, 0xEA, "M-445 Palette Glitch Fix");
-            }
-        }
-
-        //// TODO: Move to asm
-        /// <summary>
-        /// Manual tuning of specific enemy damage values on top of vanilla MM2.
-        /// </summary>
-        /// <param name="p"></param>
-        public static void NerfDamageValues(Patch p)
-        {
-            p.Add(0x7ED6C + 0x61, 0x04, "Woodman's Leaf Shield Attack Nerf");
-        }
-
-        //// TODO: Move to asm
-        public static void DisableChangkeyMakerPaletteSwap(Patch p)
-        {
-            // Stop palette change when enemy appears
-            // $3A4F6 > 0E:A4E6: 20 59 F1 JSR $F159
-            // Change to 4C 55 A5 (JMP $A555, which returns immediately) 
-            p.Add(0x3A4F6, 0x4C, "Disable Changkey Maker palette swap 1");
-            p.Add(0x3A4F7, 0x55, "Disable Changkey Maker palette swap 1");
-            p.Add(0x3A4F8, 0xA5, "Disable Changkey Maker palette swap 1");
-
-            // Stop palette change on kill/despawn:
-            // $3A562 > 0E:A552: 20 59 F1 JSR $F159
-            // Change to EA EA EA (NOP)
-            p.Add(0x3A562, 0xEA, "Disable Changkey Maker palette swap 2");
-            p.Add(0x3A563, 0xEA, "Disable Changkey Maker palette swap 2");
-            p.Add(0x3A564, 0xEA, "Disable Changkey Maker palette swap 2");
         }
 
         /// <summary>
@@ -646,41 +452,6 @@ namespace MM2Randomizer.Utilities
                 "Font_",
                 FontOption.Default,
                 font);
-        }
-
-
-        /// <summary>
-        /// This method will modify the game loop to spawn weapon energy
-        /// pickups in Wily 5.
-        /// 
-        ///
-        /// At 0x0E:816A (bank E, 0x3817A in the ROM), there is a CMP
-        /// instruction to value 0x0C (CMP #0x0C). This is checking if the
-        /// current stage is Wily 5 (0x0C).  If the current stage is Wily 5,
-        /// it jumps to a special game loop at 0x0E:8223 (bank E, 0x38233
-        /// in the ROM), which has a special setup routine for the teleport
-        /// room, otherwise, it jumps to 0x0E:8171, which is the normal game loop.
-        /// 
-        /// The special Wily 5 game loop does not include the call instruction to 
-        /// the subroutine that spawns items or enemies, but the loop itself is 
-        /// otherwise identical to the base game loop.
-        /// 
-        /// This method changes the jump to 0x0E:8223 to call the subroutine 
-        /// that sets up the teleporters. Because of the convenient ordering 
-        /// of instructions, this function will return directly to 0x0E:8171
-        /// - the start of the normal game loop - exactly as desired. As a 
-        /// result, 0x0E:8223-8267 is now unused space that may be otherwise used.
-        /// </summary>
-        public static void AddWily5SubroutineWithItemSpawns(Patch p)
-        {
-            Byte[] newJsrFor0x816E = new Byte[]
-            {
-                Opcode6502.JSR, 0xDE, 0x81
-            };
-
-            const Int32 AddressOfInitialJump = 0x3817E;
-
-            p.Add(AddressOfInitialJump, newJsrFor0x816E);
         }
 
         public static void AddLargeWeaponEnergyRefillPickupsToWily5TeleporterRoom(Patch p)

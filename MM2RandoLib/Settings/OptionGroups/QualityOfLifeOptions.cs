@@ -9,6 +9,7 @@ namespace MM2Randomizer.Settings.OptionGroups
     public class QualityOfLifeOptions : OptionGroup
     {
         [Description("Disable Flashing Effects")]
+        [AssembleFile("Options.disable_flashing.asm")]
         public BoolOption DisableFlashingEffects { get; } = new(true);
 
         [Description("Reduce Underwater Lag")]

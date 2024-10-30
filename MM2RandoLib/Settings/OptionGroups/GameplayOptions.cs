@@ -23,6 +23,7 @@ namespace MM2Randomizer.Settings.OptionGroups
         public BoolOption RandomizeSpecialItemLocations { get; } = new(true);
 
         [Description("Randomize Enemy Spawns")]
+        [PatchRom(0xe, 0x95ad, [0xea, 0xea, 0xea])] // M-445 Palette Glitch Fix
         public BoolOption RandomizeEnemySpawns { get; } = new(true);
 
         [Description("Randomize Enemy Weaknesses")]
@@ -32,10 +33,12 @@ namespace MM2Randomizer.Settings.OptionGroups
         public BoolOption RandomizeFalseFloors { get; } = new(true);
 
         [Description("Enable Faster Cutscene Text")]
+        [DefineSymbol("FASTER_CUTSCENE_TEXT")] // Needed in Options.disable_flashing.asm
         [AssembleFile("Options.faster_cutscenes.asm")]
         public BoolOption FasterCutsceneText { get; } = new(true);
 
         [Description("Enable Burst Chaser Mode")]
+        [AssembleFile("Options.burst_chaser.asm")]
         public BoolOption BurstChaserMode { get; } = new(false);
 
         [Description("Hide Stage Names")]
