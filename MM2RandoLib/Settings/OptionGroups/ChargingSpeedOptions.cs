@@ -7,14 +7,16 @@ namespace MM2Randomizer.Settings.OptionGroups
     public class ChargingSpeedOptions : OptionGroup
     {
         [Description("Hit Point Charging Speed")]
-        public EnumOption<ChargingSpeedOption> HitPoints { get; } = new(ChargingSpeedOption.Fastest);
+        [DefineValueSymbol("HEALTH_REFILL_SPEED_MASK")]
+        public EnumOption<ChargingSpeedOptionWithInstant> HitPoints { get; } = new(ChargingSpeedOptionWithInstant.Instant);
 
         [Description("Weapon Energy Charging Speed")]
-        public EnumOption<ChargingSpeedOption> WeaponEnergy { get; } = new(ChargingSpeedOption.Fastest);
+        [DefineValueSymbol("ENERGY_REFILL_SPEED_MASK")]
+        public EnumOption<ChargingSpeedOptionWithInstant> WeaponEnergy { get; } = new(ChargingSpeedOptionWithInstant.Instant);
 
         [Description("Energy Tank Charging Speed")]
         [DefineValueSymbol("ETANK_REFILL_SPEED_MASK")]
-        public EnumOption<ChargingSpeedOption> EnergyTank { get; } = new(ChargingSpeedOption.Fastest);
+        public EnumOption<ChargingSpeedOptionWithInstant> EnergyTank { get; } = new(ChargingSpeedOptionWithInstant.Instant);
 
         [Description("Robot Master Energy Charging Speed")]
         [WriteValueToRom(0x2C142)]

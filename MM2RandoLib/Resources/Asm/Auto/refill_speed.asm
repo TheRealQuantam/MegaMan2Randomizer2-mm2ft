@@ -1,9 +1,17 @@
 .macpack common
 
-LIFE_FILL_SFX_ID = $28
+MAX_ENERGY = $1c
 
-WaitForNmi = $c0ab
+REFILL_SFX_ID = $28
+
+FrameCtr = $1c
+NumEtanks = $a7
+CurItemIdx = $a9 ; 0 if none
+ItemEnergies = $9b
+Temp = $fd
+
 EnqueueSound = $c051
+WaitForNmi = $c0ab
 
 ; Original E-Tank Menu Command begins at 0D:9281:
 ; $9281: Menu Page and Menu Position Checking.        
@@ -36,13 +44,27 @@ EnqueueSound = $c051
 
 .org $9296
 	LDA $6C0 ; Do not proceed if life is full
-	CMP #$1C
+	CMP #MAX_ENERGY
 	BEQ $9274
 
-	DEC $A7 ; Decrement e-tanks
+	DEC NumEtanks
+
+.if ETANK_REFILL_SPEED_MASK = $ff
+
+	lda #MAX_ENERGY
+	sta $6c0
+
+	lda #REFILL_SFX_ID
+	jsr EnqueueSound
+
+	jmp $9274
+
+FREE_UNTIL $92b6
+
+.else
 
 -
-	LDA $1C ; 929F: Load frame counter
+	LDA FrameCtr ; 929F
 	AND #ETANK_REFILL_SPEED_MASK
 	JSR EtankIncreaseHealth ; Call code that wouldn't fit here
 
@@ -50,9 +72,11 @@ EnqueueSound = $c051
 	JSR WaitForNmi
 
 	LDA $6C0 ; If life not full loop, else done
-	CMP #$1C
+	CMP #MAX_ENERGY
 	BEQ $9274
 	JMP -
+
+FREE_UNTIL $92b6
 
 .reloc
 EtankIncreaseHealth:
@@ -60,8 +84,87 @@ EtankIncreaseHealth:
 
 	INC $6C0 ; Increase life
 
-	LDA #LIFE_FILL_SFX_ID
+	LDA #REFILL_SFX_ID
 	JMP EnqueueSound
 
 +
-	RTS ; BF87
+	RTS
+
+.endif
+
+.segment "BANKE"
+
+.if HEALTH_REFILL_SPEED_MASK = $ff
+
+.org $82f2
+PickupHealth:
+	; A = amount to increase life by
+	sta Temp
+	
+	lda $6c0
+	cmp #MAX_ENERGY
+	bcs @Done
+
+	clc
+	adc Temp
+	cmp #MAX_ENERGY
+	bcc @NoOverflow
+
+	lda #MAX_ENERGY
+
+@NoOverflow:
+	sta $6c0
+
+	lda #REFILL_SFX_ID
+	jsr EnqueueSound
+
+@Done:
+	rts
+
+FREE_UNTIL $8327
+
+.else
+
+.org $830a
+	and #HEALTH_REFILL_SPEED_MASK
+
+.endif
+	
+.if ENERGY_REFILL_SPEED_MASK = $ff
+
+.org $832d
+PickupEnergy:
+	; A = amount to increase energy by
+	sta Temp
+	
+	ldx CurItemIdx
+	beq @Done
+	
+	lda ItemEnergies, x
+	cmp #MAX_ENERGY
+	bcs @Done
+	
+	clc
+	adc Temp
+	cmp #MAX_ENERGY
+	bcc @NoOverflow
+	
+	lda #MAX_ENERGY
+	
+@NoOverflow:
+	sta ItemEnergies, x
+	
+	lda #REFILL_SFX_ID
+	jsr EnqueueSound
+	
+@Done:
+	rts
+
+FREE_UNTIL $8361
+
+.else
+
+.org $8349
+	and #ENERGY_REFILL_SPEED_MASK
+
+.endif

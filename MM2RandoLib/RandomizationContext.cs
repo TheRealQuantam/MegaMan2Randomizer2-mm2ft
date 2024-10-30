@@ -323,14 +323,6 @@ namespace MM2Randomizer
                     cosmOpts.RandomizeColorPalettes.Value);
             }
 
-            MiscHacks.SetHitPointChargingSpeed(
-                this.Patch,
-                chargingOpts.HitPoints.Value);
-
-            MiscHacks.SetWeaponEnergyChargingSpeed(
-                this.Patch,
-                chargingOpts.WeaponEnergy.Value);
-
             MiscHacks.DrawTitleScreenChanges(this.Patch, this.Seed.Identifier, this.Settings);
             MiscHacks.SetWily5NoMusicChange(this.Patch);
             MiscHacks.NerfDamageValues(this.Patch);
