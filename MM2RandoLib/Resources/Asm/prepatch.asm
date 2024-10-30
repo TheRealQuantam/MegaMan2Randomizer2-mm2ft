@@ -40,9 +40,6 @@
 	.endif
 .endmacro
 
-; The prepatch inverts its meaning in several places, effectively making it easy mode
-HardMode = $cb
-
 .segment "BANK0"
 .org $b640
 .byte $19, $1a, $1b, $1c, $1d, $1d, $1e, $1e, $1e, $1f, $20, $21, $22, $23, $25, $25
@@ -779,14 +776,6 @@ HardMode = $cb
 .byte $80, $00
 
 .segment "BANKB"
-.org $a929
-	; Invert difficulty modes
-	lda HardMode
-	beq + ; Was bne +
-	asl $00
-+
-	rts
-
 .org $ae4a
 .byte $20, $12, $01, $0e, $04, $0f, $0d, $09, $1a, $05, $12, $20
 
@@ -852,7 +841,7 @@ TITLE_REL_TILE 8, 19
 .byte $ce, $cf, $d2, $cd, $c1, $cc ; "NORMAL"
 
 TITLE_REL_TILE 8, 21
-.byte $c5, $c1, $d3, $d9 ; "EASY"
+.byte $c4, $c9, $c6, $c6, $c9, $c3, $d5, $cc, $d4 ; "DIFFICULT"
 
 ; End of title screen tile map at b710
 
@@ -863,15 +852,3 @@ TITLE_REL_TILE 8, 21
 .byte $0a ; Was $21 (??)
 
 .segment "BANKF"
-.org $e97f
-	; Invert difficulty modes
-	lda HardMode
-	beq + ; Was bne +
-	asl $00
-+
-	rts
-
-.org $f26a
-	; Invert difficulty modes
-	lda HardMode
-	bne $f2b6 ; Was beq $f2b6
