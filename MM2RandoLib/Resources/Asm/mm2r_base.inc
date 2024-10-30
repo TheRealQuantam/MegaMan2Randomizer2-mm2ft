@@ -44,7 +44,10 @@ CurObjIdx = $2b
 IframesLeft = $4b
 WpnsAcquiredMask = $9a
 ItemsAcquiredMask = $9b
+ItemEnergies = $9c
 NumEtanks = $a7
+CurItemIdx = $a9 ; 0 if none
+Temp = $fd
 
 EnemyVars110 = $110
 EnemyVars120 = $120

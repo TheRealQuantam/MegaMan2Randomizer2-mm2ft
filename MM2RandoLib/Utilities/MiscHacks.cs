@@ -165,22 +165,6 @@ namespace MM2Randomizer.Utilities
 
         /// <summary>
         /// </summary>
-        public static void SetHitPointChargingSpeed(Patch p, ChargingSpeedOption chargingSpeed)
-        {
-            Int32 address = 0x03831B;
-            p.Add(address, (Byte)chargingSpeed, "Hit Point Charging Speed");
-        }
-
-        /// <summary>
-        /// </summary>
-        public static void SetWeaponEnergyChargingSpeed(Patch p, ChargingSpeedOption chargingSpeed)
-        {
-            Int32 address = 0x03835A;
-            p.Add(address, (Byte)chargingSpeed, "Weapon Energy Charging Speed");
-        }
-
-        /// <summary>
-        /// </summary>
         public static void SetEnergyTankChargingSpeed(Patch p, ChargingSpeedOption chargingSpeed)
         {
             Int32 address = 0x0352B2;
