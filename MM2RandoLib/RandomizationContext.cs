@@ -47,6 +47,7 @@ namespace MM2Randomizer
         public readonly Assembler Assembler = new();
         public readonly ResourceNode AsmRoot;
         public readonly List<string> DefineSymbolLines = new();
+        public readonly List<string> OptActAsmMods = new();
 
         public readonly Dictionary<IOption, Dictionary<ResourceNode, ResourceNode?>> OneIpsPerDirSelections = new(ReferenceEqualityComparer.Instance);
 
@@ -126,7 +127,7 @@ namespace MM2Randomizer
         // Internal Methods
         //
 
-        internal async void Initialize()
+        internal void Initialize()
         {
             CreateInitialRom(TEMPORARY_FILE_NAME);
 
@@ -304,25 +305,7 @@ namespace MM2Randomizer
                     this.RandomInGameText);
             }
 
-            if (gameplayOpts.RandomizeEnemySpawns.Value)
-            {
-                MiscHacks.FixM445PaletteGlitch(this.Patch);
-            }
-
             // Apply final optional gameplay modifications
-            if (gameplayOpts.BurstChaserMode.Value)
-            {
-                MiscHacks.SetBurstChaser(this.Patch);
-            }
-
-            if (qolOpts.DisableFlashingEffects.Value)
-            {
-                MiscHacks.DisableScreenFlashing(
-                    this.Patch,
-                    gameplayOpts.FasterCutsceneText.Value,
-                    cosmOpts.RandomizeColorPalettes.Value);
-            }
-
             MiscHacks.SetHitPointChargingSpeed(
                 this.Patch,
                 chargingOpts.HitPoints.Value);
@@ -332,11 +315,6 @@ namespace MM2Randomizer
                 chargingOpts.WeaponEnergy.Value);
 
             MiscHacks.DrawTitleScreenChanges(this.Patch, this.Seed.Identifier, this.Settings);
-            MiscHacks.SetWily5NoMusicChange(this.Patch);
-            MiscHacks.NerfDamageValues(this.Patch);
-            MiscHacks.SetETankKeep(this.Patch);
-            MiscHacks.SetFastBossDefeatTeleport(this.Patch);
-
 
             MiscHacks.SetNewMegaManSprite(
                 ResourceTree,
@@ -361,20 +339,11 @@ namespace MM2Randomizer
                 this.Patch,
                 RandomizationContext.TEMPORARY_FILE_NAME,
                 cosmOpts.Font.Value);
-
-
-            // Modify the Wily 5 game loop so that large weapon energy refills
-            // can be spawned in the refight teleporter room
-            MiscHacks.AddWily5SubroutineWithItemSpawns(this.Patch);
             MiscHacks.AddLargeWeaponEnergyRefillPickupsToWily5TeleporterRoom(this.Patch);
 
-            //// TODO: Move this somewhere better
-            LoadAutoAsmModules();
             ApplyOptionActions();
 
-            var rom = File.ReadAllBytes(TEMPORARY_FILE_NAME);
-            rom = await AsmEngine.Apply(rom, Assembler);
-            File.WriteAllBytes(TEMPORARY_FILE_NAME, rom);
+            CompileAssembly();
 
             // Apply patch with randomized content
             this.Patch.ApplyRandoPatch(RandomizationContext.TEMPORARY_FILE_NAME);
@@ -451,6 +420,8 @@ namespace MM2Randomizer
             AsmModuleFromResource("prepatch.asm", asm);
 
             rom = await engine.Apply(rom, asm);
+            Debug.Assert(rom is not null);
+
             File.WriteAllBytes(TEMPORARY_FILE_NAME, rom);
         }
 
@@ -518,6 +489,8 @@ namespace MM2Randomizer
                             DefineSymbolLines.Add(
                                 $".define {symAct.SymbolName}{valueStr}");
                         }
+                        else if (act is AssembleFileAttribute asmAct)
+                            OptActAsmMods.Add(asmAct.Path);
                         else if (act is PatchRomAttribute patchAct)
                         {
                             // Patches are inherently deferred
@@ -560,11 +533,7 @@ namespace MM2Randomizer
             {
                 if (act is OptionValueActionAttribute valAct)
                 {
-                    if (act is AssembleFileAttribute asmAct)
-                    {
-                        AsmModuleFromResource(asmAct.Path);
-                    }
-                    else if (act is ApplyOneIpsPerDirAttribute opdAct)
+                    if (act is ApplyOneIpsPerDirAttribute opdAct)
                     {
                         var selFiles = MiscHacks.ApplyOneIpsPerDir(
                             ResourceTree,
@@ -590,14 +559,28 @@ namespace MM2Randomizer
             return;
         }
 
-        private void LoadAutoAsmModules()
+        private async void CompileAssembly()
         {
+            var asmRoot = ResourceTree.Find("Asm");
+
             // Setup the obligatory assembly modules
-            foreach (var node in ResourceTree.Find("Asm.Auto").Files)
+            foreach (var node in asmRoot.Find("Auto").Files)
                 AsmModuleFromResource(node);
+
+            // And the rest
+            foreach (string path in OptActAsmMods)
+                AsmModuleFromResource(asmRoot.Find(path));
+
+            // And compile
+            var rom = File.ReadAllBytes(TEMPORARY_FILE_NAME);
+            rom = await AsmEngine.Apply(rom, Assembler);
+            Debug.Assert(rom is not null);
+
+            File.WriteAllBytes(TEMPORARY_FILE_NAME, rom);
         }
 
-        public AsmModule AsmModuleFromResource(ResourceNode node, Assembler? asm = null)
+        public AsmModule AsmModuleFromResource(
+            ResourceNode node, Assembler? asm = null)
         {
             if (asm is null)
                 asm = Assembler;
@@ -608,7 +591,9 @@ namespace MM2Randomizer
             return mod;
         }
 
-        public AsmModule AsmModuleFromResource(string path, Assembler? asm = null)
+        public AsmModule AsmModuleFromResource(
+            string path, 
+            Assembler? asm = null)
             => AsmModuleFromResource(AsmRoot.Find(path), asm);
 
         //

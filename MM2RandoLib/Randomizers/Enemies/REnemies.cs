@@ -52,8 +52,6 @@ namespace MM2Randomizer.Randomizers.Enemies
             this.InitializeEnemies();
             this.InitializeRooms();
             this.Execute(in_Patch, in_Context.Seed);
-
-            MiscHacks.DisableChangkeyMakerPaletteSwap(in_Patch);
         }
 
         /// <summary>
