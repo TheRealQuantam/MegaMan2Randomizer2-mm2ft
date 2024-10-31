@@ -38,6 +38,11 @@ namespace MM2Randomizer.Settings.OptionGroups
         [PatchRom(0x37bea, 1)]
         public BoolOption StageSelectDefault { get; } = new(true);
 
+        [Description("Allow Self-Destruct")]
+        [Tooltip("Holding Up, Select, B, and A while pressing Start to pause instantly kills Mega Man. Good for getting out of soft-locks.")]
+        [AssembleFile("Options.self_destruct.asm")]
+        public BoolOption AllowSelfDestruct { get; } = new(true);
+
         [Description("Weapon Energy Regained on Death")]
         [Tooltip("Regains this amount of energy for all weapons on death.")]
         [DefineValueSymbol("REGAIN_WEAPON_ENERGY_ON_DEATH")]

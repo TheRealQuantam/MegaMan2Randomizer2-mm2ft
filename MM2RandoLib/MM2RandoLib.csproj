@@ -67,6 +67,7 @@
       <None Remove="Resources\Asm\Options\faster_cutscenes.asm" />
       <None Remove="Resources\Asm\Options\merciless.asm" />
       <None Remove="Resources\Asm\Options\pause_with_items.asm" />
+      <None Remove="Resources\Asm\Options\self_destruct.asm" />
       <None Remove="Resources\Asm\prepatch.asm" />
       <None Remove="Resources\Batton_Batman.ips" />
       <None Remove="Resources\EnemySet.xml" />
@@ -710,6 +711,7 @@
       <EmbeddedResource Include="Resources\Asm\Options\faster_cutscenes.asm" />
       <EmbeddedResource Include="Resources\Asm\Options\merciless.asm" />
       <EmbeddedResource Include="Resources\Asm\Options\pause_with_items.asm" />
+      <EmbeddedResource Include="Resources\Asm\Options\self_destruct.asm" />
       <EmbeddedResource Include="Resources\Asm\prepatch.asm" />
       <EmbeddedResource Include="Resources\EnemySet.xml" />
       <EmbeddedResource Include="Resources\EnemyWeaknessSet.xml" />
