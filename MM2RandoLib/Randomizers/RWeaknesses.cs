@@ -252,7 +252,10 @@ namespace MM2Randomizer.Randomizers
         {
             debug = new StringBuilder();
             RandomizeU(in_Patch, in_Context.Seed);
-            RandomizeWilyUJ(in_Patch, in_Context.Seed);
+            RandomizeWilyUJ(
+                in_Patch, 
+                in_Context.Seed, 
+                in_Context.Settings.GameplayOptions.DisallowBubbleBarrierWeakness.Value);
         }
 
         /// <summary>
@@ -454,7 +457,7 @@ namespace MM2Randomizer.Randomizers
         /// <summary>
         /// TODO
         /// </summary>
-        private void RandomizeWilyUJ(Patch in_Patch, ISeed in_Seed)
+        private void RandomizeWilyUJ(Patch in_Patch, ISeed in_Seed, bool disallowBubbleBarriers)
         {
                 // List of special weapon damage tables for enemies
                 Dictionary<EWeaponIndex, EDmgVsEnemy> dmgPtrEnemies = EDmgVsEnemy.GetTables(false);
@@ -679,7 +682,11 @@ namespace MM2Randomizer.Randomizers
                 }
 
                 // Get Barrier weakness
-                EWeaponIndex rBarrierWeakness = in_Seed.NextElement(dmgBarrierList.Keys);
+                EWeaponIndex rBarrierWeakness;
+                do
+                    rBarrierWeakness = in_Seed.NextElement(dmgBarrierList.Keys);
+                while (disallowBubbleBarriers && rBarrierWeakness == EWeaponIndex.Bubble);
+
                 EDmgVsEnemy wpnBarrier = dmgBarrierList[rBarrierWeakness];
 
                 // Scale damage to be slightly more capable than killing 5 barriers at full ammo

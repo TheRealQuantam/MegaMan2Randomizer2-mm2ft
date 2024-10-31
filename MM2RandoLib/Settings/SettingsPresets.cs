@@ -108,6 +108,7 @@ public class SettingsPresets
                 new(s.GameplayOptions.HideStageNames, true),
                 new(s.GameplayOptions.MercilessMode, false),
                 new(s.GameplayOptions.RandomizePicoPicoSpawns, false),
+                new(s.GameplayOptions.DisallowBubbleBarrierWeakness, false),
                 new(s.SpriteOptions.RandomizeBossSprites, true),
                 new(s.SpriteOptions.RandomizeEnemySprites, true),
                 new(s.SpriteOptions.RandomizeSpecialWeaponSprites, true),
