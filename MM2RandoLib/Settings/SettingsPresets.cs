@@ -125,6 +125,7 @@ public class SettingsPresets
                 new(s.QualityOfLifeOptions.EnableLeftwardWallEjection, false),
                 new(s.QualityOfLifeOptions.EnableBirdEggFix, true),
                 new(s.QualityOfLifeOptions.StageSelectDefault, false),
+                NewPreset(s.QualityOfLifeOptions.AddWeaponEnergyOnDeath, PercentOption.Percent0),
                 new(s.CosmeticOptions.RandomizeColorPalettes, true),
                 new(s.CosmeticOptions.RandomizeMusicTracks, true),
                 new(s.CosmeticOptions.OmitUnsafeMusicTracks, true),

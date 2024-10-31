@@ -431,7 +431,10 @@
                 Quality of Life Patches
             -->
             <TabItem Header="QoL Patches">
-                <ItemsControl Items="{Binding Settings.QualityOfLifeOptions.AutoCreateOptions}">
+                <ItemsControl 
+                  Items="{Binding Settings.QualityOfLifeOptions.AutoCreateOptions}"
+                  ItemTemplate="{DynamicResource SuffixedDescriptionEnumComboBox}"
+                >
                     <ItemsControl.ItemsPanel>
                         <ItemsPanelTemplate>
                             <WrapPanel
