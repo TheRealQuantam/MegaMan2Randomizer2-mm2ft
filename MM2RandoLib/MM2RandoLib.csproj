@@ -50,6 +50,7 @@
       <Compile Remove="Resources\SpritePatches\WeaponSpriteRandomizer.cs" />
     </ItemGroup>
     <ItemGroup>
+      <None Remove="Resources\Asm\Auto\blocky_hitbox_fix.asm" />
       <None Remove="Resources\Asm\Auto\clown_bot_fix.asm" />
       <None Remove="Resources\Asm\Auto\fast_boss_end.asm" />
       <None Remove="Resources\Asm\Auto\fix_password.asm" />
@@ -694,6 +695,7 @@
       <None Remove="Resources\SpritePatches\Weapons\TimeStopper\TimeStopper_RockMan2Plus.ips" />
     </ItemGroup>
     <ItemGroup>
+      <EmbeddedResource Include="Resources\Asm\Auto\blocky_hitbox_fix.asm" />
       <EmbeddedResource Include="Resources\Asm\Auto\clown_bot_fix.asm" />
       <EmbeddedResource Include="Resources\Asm\Auto\fast_boss_end.asm" />
       <EmbeddedResource Include="Resources\Asm\Auto\fix_password.asm" />
