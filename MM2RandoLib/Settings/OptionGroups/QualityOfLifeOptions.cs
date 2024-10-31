@@ -42,5 +42,10 @@ namespace MM2Randomizer.Settings.OptionGroups
         [Tooltip("Regains this amount of energy for all weapons on death.")]
         [DefineValueSymbol("REGAIN_WEAPON_ENERGY_ON_DEATH")]
         public EnumOption<PercentOption> AddWeaponEnergyOnDeath { get; } = new(PercentOption.Percent0);
+
+        [Description("Health Accidental E-Tank Protection")]
+        [Tooltip("Prevents e-tanks from being used at this health and above. To force e-tank use at this level hold Select when Start is pressed.")]
+        [DefineValueSymbol("ETANK_PROTECTION_LEVEL")]
+        public EnumOption<PercentOption> AccidentalEtankProtectionLevel { get; } = new(PercentOption.Percent100);
     }
 }

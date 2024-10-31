@@ -5,6 +5,7 @@ MAX_ENERGY = $1c
 REFILL_SFX_ID = $28
 
 FrameCtr = $1c
+CtrlState = $23
 NumEtanks = $a7
 CurItemIdx = $a9 ; 0 if none
 ItemEnergies = $9b
@@ -43,8 +44,13 @@ WaitForNmi = $c0ab
 .segment "BANKD"
 
 .org $9296
-	LDA $6C0 ; Do not proceed if life is full
+.if ETANK_PROTECTION_LEVEL <> MAX_ENERGY
+	jsr ShouldUseEtank
+.else
+	LDA $6C0
 	CMP #MAX_ENERGY
+.endif
+
 	BEQ $9274
 
 	DEC NumEtanks
@@ -89,6 +95,25 @@ EtankIncreaseHealth:
 
 +
 	RTS
+
+.endif
+
+.if ETANK_PROTECTION_LEVEL <> MAX_ENERGY
+
+.reloc
+ShouldUseEtank: ; Returns Z if no
+	lda $6c0
+	cmp #MAX_ENERGY
+	beq @Done ; Z: no
+
+	cmp #ETANK_PROTECTION_LEVEL
+	bcc @Done ; !Z: yes
+
+	lda CtrlState
+	and #$4 ; Select is pressed
+
+@Done:
+	rts
 
 .endif
 
