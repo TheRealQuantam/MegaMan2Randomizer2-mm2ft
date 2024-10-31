@@ -43,7 +43,7 @@ namespace MM2Randomizer.Settings.OptionGroups
         [AssembleFile("Options.self_destruct.asm")]
         public BoolOption AllowSelfDestruct { get; } = new(true);
 
-        [Description("Weapon Energy Regained on Death")]
+        [Description("Weapons Regained on Death")]
         [Tooltip("Regains this amount of energy for all weapons on death.")]
         [DefineValueSymbol("REGAIN_WEAPON_ENERGY_ON_DEATH")]
         public EnumOption<PercentOption> AddWeaponEnergyOnDeath { get; } = new(PercentOption.Percent0);
