@@ -37,5 +37,10 @@ namespace MM2Randomizer.Settings.OptionGroups
         [Tooltip("Make Stage Select the default choice after obtaining weapons rather than Password.")]
         [PatchRom(0x37bea, 1)]
         public BoolOption StageSelectDefault { get; } = new(true);
+
+        [Description("Weapons Regained on Death")]
+        [Tooltip("Regains this amount of energy for all weapons on death.")]
+        [DefineValueSymbol("REGAIN_WEAPON_ENERGY_ON_DEATH")]
+        public EnumOption<PercentOption> AddWeaponEnergyOnDeath { get; } = new(PercentOption.Percent0);
     }
 }
