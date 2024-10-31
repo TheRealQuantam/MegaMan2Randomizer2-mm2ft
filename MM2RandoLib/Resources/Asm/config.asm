@@ -58,7 +58,9 @@ FREE "BANKA" [$bb5e, $c000) ; $4a2 bytes
 FREE "BANKB" [$aaaf, $adff] ; $351 bytes
 FREE "BANKC" [$9300, $a000) ; $d00 bytes
 FREE "BANKD" [$bf88, $bff8) ; $70 bytes
+
 ; mm2ft uses e:bd24:be4f
+FREE "BANKE" [$8223, $8268) ; $45 bytes freed up by wily_5_respawns.asm
 FREE "BANKE" [$be4f, $c000) ; $1b1 bytes
 
 FREE "BANKF" [$ca16, $cb0b] ; $f6 bytes

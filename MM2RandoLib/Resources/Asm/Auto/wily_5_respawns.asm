@@ -11,4 +11,4 @@
 .segment "BANKE"
 
 .org $816e
-	jsr $81de
+	jsr $81de ; Was jmp $8223
