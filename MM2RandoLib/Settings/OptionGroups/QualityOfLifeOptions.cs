@@ -38,6 +38,11 @@ namespace MM2Randomizer.Settings.OptionGroups
         [PatchRom(0x37bea, 1)]
         public BoolOption StageSelectDefault { get; } = new(true);
 
+        [Description("Allow Self-Destruct")]
+        [Tooltip("Holding Up and A while pressing Start to pause instantly kills Mega Man. Good for getting out of soft-locks.")]
+        [AssembleFile("Options.self_destruct.asm")]
+        public BoolOption AllowSelfDestruct { get; } = new(true);
+
         [Description("E-Tank Health Threshold")]
         [Tooltip("Prevents e-tanks from being used at this health and above. To force e-tank use at this level hold Select when Start is pressed.")]
         [DefineValueSymbol("ETANK_PROTECTION_LEVEL")]
