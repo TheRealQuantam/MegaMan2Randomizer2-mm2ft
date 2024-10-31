@@ -56,7 +56,7 @@
       <None Remove="Resources\Asm\Auto\misc_hacks.asm" />
       <None Remove="Resources\Asm\Auto\press_hitbox_fix.asm" />
       <None Remove="Resources\Asm\Auto\refill_speed.asm" />
-      <None Remove="Resources\Asm\Auto\restore_energy_on_death.asm" />
+      <None Remove="Resources\Asm\Auto\regain_energy_on_death.asm" />
       <None Remove="Resources\Asm\Auto\show_title_logo_sprites.asm" />
       <None Remove="Resources\Asm\Auto\wily_5_respawns.asm" />
       <None Remove="Resources\Asm\config.asm" />
@@ -699,7 +699,7 @@
       <EmbeddedResource Include="Resources\Asm\Auto\misc_hacks.asm" />
       <EmbeddedResource Include="Resources\Asm\Auto\press_hitbox_fix.asm" />
       <EmbeddedResource Include="Resources\Asm\Auto\refill_speed.asm" />
-      <EmbeddedResource Include="Resources\Asm\Auto\restore_energy_on_death.asm" />
+      <EmbeddedResource Include="Resources\Asm\Auto\regain_energy_on_death.asm" />
       <EmbeddedResource Include="Resources\Asm\Auto\show_title_logo_sprites.asm" />
       <EmbeddedResource Include="Resources\Asm\Auto\wily_5_respawns.asm" />
       <EmbeddedResource Include="Resources\Asm\config.asm" />

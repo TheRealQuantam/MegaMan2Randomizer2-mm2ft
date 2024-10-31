@@ -7,7 +7,7 @@ ItemEnergies = $9b
 
 LoadStageTileset = $c45d
 
-.if RESTORE_WEAPON_ENERGY_ON_DEATH
+.if REGAIN_WEAPON_ENERGY_ON_DEATH
 
 .segment "BANKE"
 
@@ -21,12 +21,12 @@ RestoreWeaponsOnDeath:
 	; Okay to clobber all
 	ldx #(NUM_ITEMS - 1)
 
-.if RESTORE_WEAPON_ENERGY_ON_DEATH < MAX_ENERGY
+.if REGAIN_WEAPON_ENERGY_ON_DEATH < MAX_ENERGY
 		
 -
 	lda ItemEnergies, x
 	clc
-	adc #RESTORE_WEAPON_ENERGY_ON_DEATH
+	adc #REGAIN_WEAPON_ENERGY_ON_DEATH
 	cmp #MAX_ENERGY
 	bcc +
 
@@ -51,4 +51,4 @@ RestoreWeaponsOnDeath:
 
 	rts
 
-.endif ; RESTORE_WEAPON_ENERGY_ON_DEATH
+.endif ; REGAIN_WEAPON_ENERGY_ON_DEATH
