@@ -16,7 +16,7 @@ PatchDoPauseScreen:
 	; Okay to clobber A, X, Y?
 	lda CtrlState
 	eor #$ff
-	and #$17 ; = 0 if Up, Select, B, and A are held
+	and #$11 ; = 0 if Up and A are held
 	bne +
 
 	sta MmState ; Explosion only occurs if MmState == 0
