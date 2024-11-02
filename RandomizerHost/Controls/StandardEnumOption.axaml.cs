@@ -3,8 +3,6 @@ using Avalonia.Controls;
 using Avalonia.Markup.Xaml;
 using MM2RandoLib.Settings.Options;
 
-#nullable enable
-
 namespace RandomizerHost.Controls;
 
 public partial class StandardEnumOption : UserControl

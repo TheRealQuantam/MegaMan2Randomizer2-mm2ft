@@ -25,7 +25,6 @@ namespace RandomizerHost.ViewModels
 
         public MainWindowViewModel()
         {
-            this.AppConfigurationSettings = new AppConfigurationSettings();
             this.AppConfigurationSettings.PropertyChanged += this.AppConfigurationSettings_PropertyChanged;
             this.AppConfigurationSettings.RandomizationSettingsAdapter.PropertyChanged += this.AppConfigurationSettings_PropertyChanged;
 
@@ -36,7 +35,7 @@ namespace RandomizerHost.ViewModels
             // try to load the Mega Man 2 rom from the executable path
             if (true == String.IsNullOrEmpty(this.AppConfigurationSettings.RomSourcePath))
             {
-                string curDir = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location);
+                string? curDir = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location);
                 Debug.Assert(curDir is not null);
 
                 String[] tryNames = new String[]
@@ -56,9 +55,9 @@ namespace RandomizerHost.ViewModels
                 }
             }
 
-            this.OpenContainingFolderCommand = ReactiveCommand.Create(this.OpenContainingFolder, this.WhenAnyValue(x => x.CanOpenContainngFolder));
-            this.CreateFromGivenSeedCommand = ReactiveCommand.Create<Window>(this.CreateFromGivenSeed, this.WhenAnyValue(x => x.AppConfigurationSettings.IsSeedValid));
-            this.CreateFromRandomSeedCommand = ReactiveCommand.Create<Window>(this.CreateFromRandomSeed, this.WhenAnyValue(x => x.AppConfigurationSettings.IsRomValid));
+            this.OpenContainingFolderCommand = ReactiveCommand.Create(this.OpenContainingFolder, this.WhenAnyValue(x => x.CanOpenContainingFolder));
+            this.CreateFromGivenSeedCommand = ReactiveCommand.Create<Window>(this.CreateFromGivenSeed, this.WhenAnyValue(x => x.AppConfigurationSettings!.IsSeedValid));
+            this.CreateFromRandomSeedCommand = ReactiveCommand.Create<Window>(this.CreateFromRandomSeed, this.WhenAnyValue(x => x.AppConfigurationSettings!.IsRomValid));
             this.OpenRomFileCommand = ReactiveCommand.Create<Window>(this.OpenRomFile);
 
             this.ImportSettingsCommand = ReactiveCommand.Create<Window>(this.ImportSettings);
@@ -66,9 +65,9 @@ namespace RandomizerHost.ViewModels
             this.SetThemeCommand = ReactiveCommand.Create(this.SetTheme);
         }
 
-        private void AppConfigurationSettings_PropertyChanged(Object sender, System.ComponentModel.PropertyChangedEventArgs e)
+        private void AppConfigurationSettings_PropertyChanged(Object? sender, System.ComponentModel.PropertyChangedEventArgs? e)
         {
-            this.AppConfigurationSettings.Save();
+            this.AppConfigurationSettings!.Save();
         }
 
 
@@ -89,7 +88,7 @@ namespace RandomizerHost.ViewModels
         // Properties
         //
 
-        public RandomizationSettings Settings => AppConfigurationSettings.RandomizationSettings;
+        public RandomizationSettings Settings => AppConfigurationSettings!.RandomizationSettings;
         public SettingsPresets SettingsPresets { get; }
 
         public AppConfigurationSettings AppConfigurationSettings
@@ -104,7 +103,7 @@ namespace RandomizerHost.ViewModels
             set => this.RaiseAndSetIfChanged(ref this.mIsShowingHint, value);
         }
 
-        public Boolean CanOpenContainngFolder
+        public Boolean CanOpenContainingFolder
         {
             get => this.mCanOpenContainngFolder;
             set => this.RaiseAndSetIfChanged(ref this.mCanOpenContainngFolder, value);
@@ -112,12 +111,17 @@ namespace RandomizerHost.ViewModels
 
         public Boolean IsCoreModulesChecked
         {
-            get => this.AppConfigurationSettings.RandomizationSettings.GameplayOptions.RandomizeRobotMasterStageSelection.Value &&
+            get
+            {
+                Debug.Assert(this.AppConfigurationSettings is not null);
+
+                return this.AppConfigurationSettings.RandomizationSettings.GameplayOptions.RandomizeRobotMasterStageSelection.Value &&
                    this.AppConfigurationSettings.RandomizationSettings.GameplayOptions.RandomizeSpecialWeaponReward.Value &&
                    this.AppConfigurationSettings.RandomizationSettings.GameplayOptions.RandomizeRefightTeleporters.Value;
+            }
         }
 
-        public SettingsPreset SettingsPreset
+        public SettingsPreset? SettingsPreset
         {
             get => mSettingsPreset;
             set
@@ -145,7 +149,7 @@ namespace RandomizerHost.ViewModels
 
             openFileDialog.AllowMultiple = false;
 
-            openFileDialog.Filters.Add(
+            openFileDialog.Filters!.Add(
                 new FileDialogFilter()
                 {
                     Name = @"ROM Image",
@@ -159,13 +163,13 @@ namespace RandomizerHost.ViewModels
 
             // Call the ShowDialog method to show the dialog box.
             String exePath = Assembly.GetExecutingAssembly().Location;
-            String exeDir = Path.GetDirectoryName(exePath);
+            String exeDir = Path.GetDirectoryName(exePath)!;
             openFileDialog.Directory = exeDir;
 
-            String[] dialogResult = await openFileDialog.ShowAsync(in_Window);
+            String[]? dialogResult = await openFileDialog.ShowAsync(in_Window);
 
             // Process input if the user clicked OK.
-            if (dialogResult?.Length > 0)
+            if (dialogResult is not null && dialogResult.Length > 0)
             {
                 String fileName = dialogResult[0];
 
@@ -185,7 +189,7 @@ namespace RandomizerHost.ViewModels
 
         public async void CreateFromGivenSeed(Window in_Window)
         {
-            if (true == String.IsNullOrEmpty(this.AppConfigurationSettings.SeedString))
+            if (true == String.IsNullOrEmpty(this.AppConfigurationSettings?.SeedString))
             {
                 this.CreateFromRandomSeed(in_Window);
             }
@@ -194,7 +198,7 @@ namespace RandomizerHost.ViewModels
                 try
                 {
                     this.PerformRandomization(in_DefaultSeed: false);
-                    this.AppConfigurationSettings.SeedString = this.mCurrentRandomizationContext.Seed.SeedString;
+                    this.AppConfigurationSettings.SeedString = this.mCurrentRandomizationContext!.Seed.SeedString;
                 }
                 catch (Exception e)
                 {
@@ -209,7 +213,7 @@ namespace RandomizerHost.ViewModels
             try
             {
                 this.PerformRandomization(in_DefaultSeed: true);
-                this.AppConfigurationSettings.SeedString = this.mCurrentRandomizationContext.Seed.SeedString;
+                this.AppConfigurationSettings!.SeedString = this.mCurrentRandomizationContext!.Seed.SeedString;
             }
             catch (Exception e)
             {
@@ -242,7 +246,7 @@ namespace RandomizerHost.ViewModels
         public void PerformRandomization(Boolean in_DefaultSeed)
         {
             // Perform randomization based on settings, then generate the ROM.
-            this.AppConfigurationSettings.UpdateRandomizerSettings(in_DefaultSeed);
+            this.AppConfigurationSettings!.UpdateRandomizerSettings(in_DefaultSeed);
             Settings.SettingsPreset = !object.ReferenceEquals(mSettingsPreset, SettingsPresets.Presets[0]) ? mSettingsPreset : null;
 
             RandomMM2.RandomizerCreate(Settings, out RandomizationContext context);
@@ -275,7 +279,7 @@ namespace RandomizerHost.ViewModels
             }
 
             // Flag UI as having created a ROM, enabling the "open folder" button
-            this.CanOpenContainngFolder = RuntimeInformation.IsOSPlatform(OSPlatform.Windows);
+            this.CanOpenContainingFolder = RuntimeInformation.IsOSPlatform(OSPlatform.Windows);
         }
 
         public async void ImportSettings(Window in_Window)
@@ -284,7 +288,7 @@ namespace RandomizerHost.ViewModels
 
             openFileDialog.AllowMultiple = false;
 
-            openFileDialog.Filters.Add(
+            openFileDialog.Filters!.Add(
                 new FileDialogFilter()
                 {
                     Name = @"XML Settings",
@@ -298,20 +302,20 @@ namespace RandomizerHost.ViewModels
 
             // Call the ShowDialog method to show the dialog box.
             String exePath = Assembly.GetExecutingAssembly().Location;
-            String exeDir = Path.GetDirectoryName(exePath);
+            String exeDir = Path.GetDirectoryName(exePath)!;
             openFileDialog.Directory = exeDir;
 
-            String[] dialogResult = await openFileDialog.ShowAsync(in_Window);
+            String[]? dialogResult = await openFileDialog.ShowAsync(in_Window);
 
             // Process input if the user clicked OK.
-            if (dialogResult?.Length > 0)
+            if (dialogResult is not null && dialogResult.Length > 0)
             {
                 String fileName = dialogResult[0];
                 using (FileStream fileStream = new FileStream(fileName, FileMode.Open, FileAccess.Read))
                 {
                     using (XmlReader xmlReader = XmlReader.Create(fileStream, new XmlReaderSettings() { IgnoreComments = true, IgnoreWhitespace = true }))
                     {
-                        this.AppConfigurationSettings.ReadXml(xmlReader);
+                        this.AppConfigurationSettings!.ReadXml(xmlReader);
                         xmlReader.Close();
                     }
                 }
@@ -322,7 +326,7 @@ namespace RandomizerHost.ViewModels
         {
             SaveFileDialog saveFileDialog = new SaveFileDialog();
 
-            saveFileDialog.Filters.Add(
+            saveFileDialog.Filters!.Add(
                 new FileDialogFilter()
                 {
                     Name = @"XML Settings",
@@ -336,20 +340,20 @@ namespace RandomizerHost.ViewModels
 
             // Call the ShowDialog method to show the dialog box.
             String exePath = Assembly.GetExecutingAssembly().Location;
-            String exeDir = Path.GetDirectoryName(exePath);
+            String exeDir = Path.GetDirectoryName(exePath)!;
             saveFileDialog.Directory = exeDir;
 
-            String dialogResult = await saveFileDialog.ShowAsync(in_Window);
+            String? dialogResult = await saveFileDialog.ShowAsync(in_Window);
 
             // Process input if the user clicked OK.
-            if (dialogResult?.Length > 0)
+            if (!String.IsNullOrEmpty(dialogResult))
             {
                 String fileName = dialogResult;
                 using (FileStream fileStream = new FileStream(fileName, FileMode.Create, FileAccess.Write))
                 {
                     using (XmlWriter xmlWriter = XmlWriter.Create(fileStream))
                     {
-                        this.AppConfigurationSettings.WriteXml(xmlWriter);
+                        this.AppConfigurationSettings!.WriteXml(xmlWriter);
                     }
                 }
             }
@@ -359,7 +363,7 @@ namespace RandomizerHost.ViewModels
         {
             if (true == this.mAppConfigurationSettings.EnableAppUiDarkTheme)
             {
-                Avalonia.Application.Current.Styles[0] =
+                Avalonia.Application.Current!.Styles[0] =
                     new FluentTheme(new Uri("avares://Dummy/App.xaml"))
                     {
                         Mode = FluentThemeMode.Dark
@@ -367,7 +371,7 @@ namespace RandomizerHost.ViewModels
             }
             else
             {
-                Avalonia.Application.Current.Styles[0] =
+                Avalonia.Application.Current!.Styles[0] =
                     new FluentTheme(new Uri("avares://Dummy/App.xaml"))
                     {
                         Mode = FluentThemeMode.Light
@@ -380,9 +384,9 @@ namespace RandomizerHost.ViewModels
         // Private Data Members
         //
 
-        private AppConfigurationSettings mAppConfigurationSettings = null;
-        private RandomizationContext mCurrentRandomizationContext = null;
-        private SettingsPreset mSettingsPreset = null;
+        private AppConfigurationSettings mAppConfigurationSettings = new AppConfigurationSettings();
+        private RandomizationContext? mCurrentRandomizationContext = null;
+        private SettingsPreset? mSettingsPreset = null;
         private Boolean mIsShowingHint = true;
         private Boolean mCanOpenContainngFolder = false;
 

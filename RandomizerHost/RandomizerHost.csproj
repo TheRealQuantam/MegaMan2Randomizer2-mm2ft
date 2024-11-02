@@ -17,6 +17,7 @@
     <Deterministic>false</Deterministic>
     <StartupObject>RandomizerHost.Program</StartupObject>
     <FileVersion>0.6.7</FileVersion>
+    <Nullable>enable</Nullable>
   </PropertyGroup>
   <ItemGroup>
     <AvaloniaResource Include="Assets\**" />
