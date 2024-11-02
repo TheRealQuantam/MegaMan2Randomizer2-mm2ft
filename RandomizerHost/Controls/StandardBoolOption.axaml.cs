@@ -5,8 +5,6 @@ using MM2RandoLib.Settings.Options;
 
 namespace RandomizerHost.Controls;
 
-#nullable enable
-
 public partial class StandardBoolOption : UserControl
 {
     public BoolOption? Option
