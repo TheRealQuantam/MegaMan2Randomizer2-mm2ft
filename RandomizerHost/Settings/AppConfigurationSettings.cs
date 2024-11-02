@@ -4,9 +4,12 @@ using System.ComponentModel;
 using System.Configuration;
 using System.Diagnostics;
 using System.IO;
+using System.IO.Hashing;
 using System.Linq;
 using System.Reflection;
 using System.Runtime.CompilerServices;
+using System.Security.Cryptography;
+using System.Text;
 using System.Xml;
 using System.Xml.Schema;
 using System.Xml.Serialization;
@@ -144,38 +147,16 @@ namespace RandomizerHost.Settings
 
         public Boolean Enable_ImportSettings
         {
-            get
-            {
-                return this.mEnable_ImportSettings;
-            }
-
-            set
-            {
-                if (value != this.mEnable_ImportSettings)
-                {
-                    this.mEnable_ImportSettings = value;
-                    this.NotifyPropertyChanged();
-                }
-            }
+            get => mEnable_ImportSettings;
+            set => RaiseAndSetIfChanged(ref mEnable_ImportSettings, value);
         }
 
         private Boolean mEnable_ExportSettings = true;
 
         public Boolean Enable_ExportSettings
         {
-            get
-            {
-                return this.mEnable_ExportSettings;
-            }
-
-            set
-            {
-                if (value != this.mEnable_ExportSettings)
-                {
-                    this.mEnable_ExportSettings = value;
-                    this.NotifyPropertyChanged();
-                }
-            }
+            get => mEnable_ExportSettings;
+            set => RaiseAndSetIfChanged(ref mEnable_ExportSettings, value);
         }
 
 
@@ -186,96 +167,48 @@ namespace RandomizerHost.Settings
         // This property has a constant value; it does not access the app configuration
         public Boolean IsRomSourcePathValid
         {
-            get
-            {
-                return this.mIsRomSourcePathValid;
-            }
-
-            private set
-            {
-                this.mIsRomSourcePathValid = value;
-                this.NotifyPropertyChanged();
-            }
+            get => mIsRomSourcePathValid;
+            private set => RaiseAndSetIfChanged(ref mIsRomSourcePathValid, value);
         }
 
 
         // This property has a constant value; it does not access the app configuration
         public Boolean IsSeedValid
         {
-            get
-            {
-                return this.mIsSeedValid;
-            }
-
-            private set
-            {
-                this.mIsSeedValid = value;
-                this.NotifyPropertyChanged();
-            }
+            get => mIsSeedValid;
+            private set => RaiseAndSetIfChanged(ref mIsSeedValid, value);
         }
 
 
         // This property has a constant value; it does not access the app configuration
         public Boolean IsRomValid
         {
-            get
-            {
-                return this.mIsRomValid;
-            }
-
-            private set
-            {
-                this.mIsRomValid = value;
-                this.NotifyPropertyChanged();
-            }
+            get => mIsRomValid;
+            private set => RaiseAndSetIfChanged(ref mIsRomValid, value);
         }
 
 
         // This property has a constant value; it does not access the app configuration
-        public String HashStringMD5
+        public String IsRomValidText
         {
-            get
-            {
-                return this.mHashStringMD5;
-            }
-
-            private set
-            {
-                this.mHashStringMD5 = value;
-                this.NotifyPropertyChanged();
-            }
+            get => mIsRomValidText;
+            private set => RaiseAndSetIfChanged(ref mIsRomValidText, value);
         }
 
 
         // This property has a constant value; it does not access the app configuration
-        public String HashStringSHA256
+        public String RomStatusTooltip
         {
-            get
-            {
-                return this.mHashStringSHA256;
-            }
-
-            private set
-            {
-                this.mHashStringSHA256 = value;
-                this.NotifyPropertyChanged();
-            }
+            get => mRomStatusTooltip;
+            private set => RaiseAndSetIfChanged(ref mRomStatusTooltip, value);
         }
 
 
         // This property has a constant value; it does not access the app configuration
         public String HashValidationMessage
         {
-            get
-            {
-                return this.mHashValidationMessage;
-            }
-
-            set
-            {
-                this.mHashValidationMessage = value;
-                this.NotifyPropertyChanged();
-            }
+            get => mHashValidationMessage;
+            set => RaiseAndSetIfChanged(ref mHashValidationMessage, value);
         }
 
 
@@ -499,18 +432,19 @@ namespace RandomizerHost.Settings
             }
         }
 
-
         private void ValidateFile(String in_FilePath)
         {
             if (true == String.IsNullOrWhiteSpace(in_FilePath))
             {
                 this.IsRomSourcePathValid = false;
                 this.IsRomValid = false;
-                this.HashStringSHA256 = String.Empty;
-                this.HashStringMD5 = String.Empty;
+                this.IsRomValidText = "";
+                this.RomStatusTooltip = "";
                 this.HashValidationMessage = String.Empty;
                 return;
             }
+
+            this.IsRomValidText = "❌";
 
             this.IsRomSourcePathValid = File.Exists(in_FilePath);
 
@@ -529,31 +463,48 @@ namespace RandomizerHost.Settings
                 }
                 else
                 {
-                    using (FileStream fs = new FileStream(in_FilePath, FileMode.Open, FileAccess.Read))
+                    byte[]? file = File.ReadAllBytes(in_FilePath),
+                        rom = file[0x10..(file.Length - 1)];
+
+                    Dictionary<string, Func<byte[], byte[]>> romHashAlgs = new()
                     {
-                        using (System.Security.Cryptography.SHA256 sha = System.Security.Cryptography.SHA256.Create())
-                        {
-                            Byte[] hashSha256 = sha.ComputeHash(fs);
-                            this.HashStringSHA256 = BitConverter.ToString(hashSha256).Replace("-", String.Empty).ToLowerInvariant();
-                        }
+                        { "CRC", rom => Crc32.Hash(rom).Reverse().ToArray() },
+                        { "MD5", MD5.HashData},
+                    };
+                    Dictionary<string, Func<byte[], byte[]>> fileHashAlgs = new()
+                    {
+                        { "CRC", rom => Crc32.Hash(rom).Reverse().ToArray() },
+                        { "MD5", MD5.HashData },
+                        { "SHA-1", SHA1.HashData },
+                        { "SHA-256", SHA256.HashData },
+                    };
 
-                        fs.Seek(0, SeekOrigin.Begin);
+                    var ByteToString = (byte[] b) => BitConverter.ToString(b)
+                        .Replace("-", String.Empty).ToLowerInvariant();
+                    var romHashes = romHashAlgs.ToDictionary(nf => nf.Key, 
+                        nf => ByteToString(nf.Value(rom)));
+                    var fileHashes = fileHashAlgs.ToDictionary(nf => nf.Key,
+                        nf => ByteToString(nf.Value(file)));
 
-                        using (System.Security.Cryptography.MD5 md5 = System.Security.Cryptography.MD5.Create())
-                        {
-                            Byte[] hashMd5 = md5.ComputeHash(fs);
-                            this.HashStringMD5 = BitConverter.ToString(hashMd5).Replace("-", "").ToLowerInvariant();
-                        }
-                    }
+                    StringBuilder tipSb = new();
+                    tipSb.AppendLine("ROM");
+                    foreach (var (name, fn) in romHashAlgs)
+                        tipSb.AppendLine($"{name}: {ByteToString(fn(rom))}");
+
+                    tipSb.AppendLine();
+                    tipSb.AppendLine("File");
+                    foreach (var (name, fn) in fileHashAlgs)
+                        tipSb.AppendLine($"{name}: {ByteToString(fn(file))}");
 
                     // Check that the hash matches a supported hash
-                    this.IsRomValid =
-                        EXPECTED_MD5_HASH_LIST.Contains(this.HashStringMD5) &&
-                        EXPECTED_SHA256_HASH_LIST.Contains(this.HashStringSHA256);
+                    this.IsRomValid = EXPECTED_SHA256_HASH_LIST.Contains(
+                        fileHashes["SHA-256"]);
+                    this.RomStatusTooltip = tipSb.ToString();
 
                     if (this.IsRomValid)
                     {
                         this.HashValidationMessage = "ROM checksum is valid.";
+                        this.IsRomValidText = "✅";
                     }
                     else
                     {
@@ -571,6 +522,17 @@ namespace RandomizerHost.Settings
         private void NotifyPropertyChanged([CallerMemberName] String propertyName = "")
         {
             this.OnPropertyChanged(this, new PropertyChangedEventArgs(propertyName));
+        }
+
+        private void RaiseAndSetIfChanged<T>(ref T target, T value, [CallerMemberName] String propertyName = "")
+        {
+            bool changed = ((target is null) != (value is null))
+                || (target is not null && !target.Equals(value));
+
+            target = value;
+
+            if (changed)
+                NotifyPropertyChanged(propertyName);
         }
 
 
@@ -597,9 +559,8 @@ namespace RandomizerHost.Settings
         private Boolean mIsRomSourcePathValid = false;
         private Boolean mIsSeedValid = false;
         private Boolean mIsRomValid = false;
-
-        private String mHashStringMD5 = String.Empty;
-        private String mHashStringSHA256 = String.Empty;
+        private String mIsRomValidText = "";
+        private String mRomStatusTooltip = "";
         private String mHashValidationMessage = String.Empty;
 
 
@@ -609,12 +570,6 @@ namespace RandomizerHost.Settings
 
         private const Double BYTES_PER_MEGABYTE = 1024d * 1024d;
         private const Int64 ONE_MEGABYTE = 1024 * 1024;
-
-        private readonly List<String> EXPECTED_MD5_HASH_LIST = new List<String>()
-        {
-            "caaeb9ee3b52839de261fd16f93103e6", // Mega Man 2 (U)
-            "8e4bc5b03ffbd4ef91400e92e50dd294", // Mega Man 2 (USA)
-        };
 
         private readonly List<String> EXPECTED_SHA256_HASH_LIST = new List<String>()
         {
