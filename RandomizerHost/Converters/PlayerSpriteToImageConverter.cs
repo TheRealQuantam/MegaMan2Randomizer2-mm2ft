@@ -8,8 +8,6 @@ using System;
 using System.Diagnostics;
 using System.Globalization;
 
-#nullable enable
-
 namespace RandomizerHost.Converters;
 
 public class PlayerSpriteToImageConverter : IValueConverter

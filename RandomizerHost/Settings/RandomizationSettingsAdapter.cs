@@ -4,6 +4,7 @@ using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Configuration;
+using System.Diagnostics;
 using System.Linq;
 using System.Reflection;
 
@@ -20,15 +21,15 @@ public sealed class RandomizationSettingsAdapter : ApplicationSettingsBase
 
     public RandomizationSettingsAdapter(RandomizationSettings settings, SettingsProvider provider)
     {
-        PropertyInfo optRndProp = typeof(IOption).GetProperty(nameof(IOption.Randomize)),
-            optValueProp = typeof(IOption).GetProperty(nameof(IOption.BaseValue));
+        PropertyInfo optRndProp = typeof(IOption).GetProperty(nameof(IOption.Randomize))!,
+            optValueProp = typeof(IOption).GetProperty(nameof(IOption.BaseValue))!;
 
         if (Providers.Count == 0)
             Providers.Add(provider);
 
-        foreach (var opt in settings.AllOptions.Where(opt => opt.Info.SaveLoad))
+        foreach (var opt in settings.AllOptions.Where(opt => opt.Info!.SaveLoad))
         {
-            var optInfo = opt.Info;
+            var optInfo = opt.Info!;
             SettingsProperty rndProp = new(optInfo.PathString + ":Randomize")
             {
                 PropertyType = typeof(bool),
@@ -55,12 +56,14 @@ public sealed class RandomizationSettingsAdapter : ApplicationSettingsBase
             _propSetters[rndProp.Name] = (object value) => optRndProp.SetValue(opt, value);
             _propSetters[valueProp.Name] = (object value) => optValueProp.SetValue(opt, value);
 
-            PropertyChangedEventHandler changeHdlr = (object sender, PropertyChangedEventArgs args) =>
+            PropertyChangedEventHandler changeHdlr = (object? sender, PropertyChangedEventArgs args) =>
             {
+                Debug.Assert(sender is not null);
+
                 if (args.PropertyName == nameof(IOption.Randomize))
-                    this[rndProp.Name] = optRndProp.GetValue(sender);
+                    this[rndProp.Name] = optRndProp.GetValue(sender)!;
                 else if (args.PropertyName == nameof(IOption.BaseValue))
-                    this[valueProp.Name] = optValueProp.GetValue(sender);
+                    this[valueProp.Name] = optValueProp.GetValue(sender)!;
             };
             _changeHdlrs.Add(changeHdlr);
             opt.PropertyChanged += changeHdlr;

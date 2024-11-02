@@ -283,7 +283,7 @@ namespace RandomizerHost.Settings
         // IXmlSerializable Methods
         //
 
-        public XmlSchema GetSchema()
+        public XmlSchema? GetSchema()
         {
             return null;
         }
@@ -337,13 +337,13 @@ namespace RandomizerHost.Settings
                                 OPTION_GROUP_PATH_ATTRIBUTE_NAME, 
                                 grpPath);
                             
-                            foreach (var opt in grp.Options.Where(opt => opt.Info.SaveLoad))
+                            foreach (var opt in grp.Options.Where(opt => opt.Info!.SaveLoad))
                             {
                                 in_Writer.WriteStartElement(OPTION_ELEMENT_NAME);
 
                                 in_Writer.WriteAttributeString(
                                     OPTION_NAME_ATTRIBUTE_NAME, 
-                                    opt.Info.Name);
+                                    opt.Info!.Name);
                                 in_Writer.WriteAttributeString(
                                     OPTION_RANDOMIZE_ATTRIBUTE_NAME, 
                                     opt.Randomize.ToString());
@@ -409,7 +409,7 @@ namespace RandomizerHost.Settings
 
             do
             {
-                string grpPath = in_Reader.GetAttribute(
+                string? grpPath = in_Reader.GetAttribute(
                     OPTION_GROUP_PATH_ATTRIBUTE_NAME);
                 if (grpPath is null
                     || !in_Reader.ReadToDescendant(OPTION_ELEMENT_NAME))
@@ -417,7 +417,7 @@ namespace RandomizerHost.Settings
 
                 do
                 {
-                    string name = in_Reader.GetAttribute(
+                    string? name = in_Reader.GetAttribute(
                         OPTION_NAME_ATTRIBUTE_NAME),
                         rndStr = in_Reader.GetAttribute(
                             OPTION_RANDOMIZE_ATTRIBUTE_NAME),
@@ -429,7 +429,7 @@ namespace RandomizerHost.Settings
                         continue;
 
                     string path = string.Join(".", grpPath, name);
-                    IOption opt;
+                    IOption? opt;
                     if (!RandomizationSettings.OptionsByPath.TryGetValue(
                         path, out opt))
                         continue;
@@ -487,7 +487,7 @@ namespace RandomizerHost.Settings
         {
             // First, clean the seed of non-alphanumerics.  This isn't for the
             // seed generation code, but to maintain safe file names
-            ref_Seed = ref_Seed.Trim().ToUpperInvariant().RemoveNonAlphanumericCharacters();
+            ref_Seed = ref_Seed.Trim().ToUpperInvariant().RemoveNonAlphanumericCharacters()!;
 
             if (true == String.IsNullOrWhiteSpace(ref_Seed))
             {
