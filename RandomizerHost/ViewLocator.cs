@@ -12,7 +12,7 @@ namespace RandomizerHost
         public IControl Build(object data)
         {
             String name = data.GetType().FullName!.Replace("ViewModel", "View");
-            Type type = Type.GetType(name);
+            Type? type = Type.GetType(name);
 
             if (type != null)
             {

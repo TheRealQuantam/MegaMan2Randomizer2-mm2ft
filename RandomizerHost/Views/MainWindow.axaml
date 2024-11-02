@@ -8,9 +8,9 @@
         xmlns:ctls="using:RandomizerHost.Controls"
         mc:Ignorable="d"
         d:DesignWidth="650"
-        d:DesignHeight="760"
+        d:DesignHeight="730"
         Width="650"
-        Height="760"
+        Height="730"
         x:Class="RandomizerHost.Views.MainWindow"
         Icon="/Assets/MegaMan2Randomizer.ico"
         Title="RandomizerHost"
@@ -61,7 +61,7 @@
 
         <Grid.RowDefinitions>
             <RowDefinition Height="75"/>
-            <RowDefinition Height="148"/>
+            <RowDefinition Height="85"/>
             <RowDefinition Height="40"/>
             <RowDefinition Height="75"/>
             <RowDefinition/>
@@ -93,8 +93,6 @@
         >
             <Grid.RowDefinitions>
                 <RowDefinition Height="20"/>
-                <RowDefinition Height="32"/>
-                <RowDefinition Height="32"/>
                 <RowDefinition Height="32"/>
                 <RowDefinition Height="32"/>
             </Grid.RowDefinitions>
@@ -136,62 +134,24 @@
                         Name="TextBox_RomFile"
                         HorizontalAlignment="Stretch"
                         VerticalAlignment="Stretch"
-                        Width="580"
+                        Width="570"
                         Margin="0,0,0,0"
                         Text="{Binding AppConfigurationSettings.RomSourcePath}"
+                    />
+                
+                    <TextBlock
+                        HorizontalAlignment="Center"
+                        VerticalAlignment="Center"
+                        MinWidth="35"
+                        Margin="4,4"
+                        FontSize="22"
+                        Text="{Binding AppConfigurationSettings.IsRomValidText}"
+                        ToolTip.Tip="{Binding AppConfigurationSettings.RomStatusTooltip}"
                     />
                 </DockPanel>
             </Border>
 
             <!-- Row 2 -->
-            <Border
-                Grid.Row="2"
-                Grid.ColumnSpan="2"
-                HorizontalAlignment="Stretch"
-                BorderThickness="3"
-            >
-                <DockPanel>
-                    <TextBlock
-                        TextAlignment="Right"
-                        Text="MD5:"
-                        VerticalAlignment="Center"
-                    />
-
-                    <TextBlock
-                        Margin="4,0,0,0"
-                        IsVisible="{Binding AppConfigurationSettings.IsRomSourcePathValid}"
-                        Text="{Binding AppConfigurationSettings.HashStringMD5}"
-                    />
-                </DockPanel>
-            </Border>
-
-            <!-- Row 3 -->
-            <Border
-                Grid.Row="3"
-                Grid.ColumnSpan="2"
-                HorizontalAlignment="Stretch"
-                BorderThickness="3"
-            >
-                <DockPanel>
-                    <TextBlock
-                        Grid.Row="3"
-                        Grid.Column="0"
-                        TextAlignment="Right"
-                        Text="SHA-256:"
-                        VerticalAlignment="Center"
-                    />
-
-                    <TextBlock
-                        Grid.Row="3"
-                        Grid.Column="1"
-                        Margin="4,0,0,0"
-                        IsVisible="{Binding AppConfigurationSettings.IsRomSourcePathValid}"
-                        Text="{Binding AppConfigurationSettings.HashStringSHA256}"
-                    />
-                </DockPanel>
-            </Border>
-
-            <!-- Row 4 -->
             <Border
                 Grid.Row="4"
                 Grid.ColumnSpan="2"

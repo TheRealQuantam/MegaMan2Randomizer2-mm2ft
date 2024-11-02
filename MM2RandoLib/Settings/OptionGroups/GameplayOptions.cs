@@ -7,6 +7,13 @@ namespace MM2Randomizer.Settings.OptionGroups
 {
     public class GameplayOptions : OptionGroup
     {
+        [NoCreateControl]
+        public BoolOption RandomizeRefightTeleporters { get; } = new(true);
+        [NoCreateControl]
+        public BoolOption RandomizeRobotMasterStageSelection { get; } = new(true);
+        [NoCreateControl]
+        public BoolOption RandomizeSpecialWeaponReward { get; } = new(true);
+
         [Description("Randomize Special Weapon Behavior")]
         public BoolOption RandomizeSpecialWeaponBehavior { get; } = new(true);
 
@@ -52,11 +59,9 @@ namespace MM2Randomizer.Settings.OptionGroups
         [Description("Randomize PicoPico-kun Spawns")]
         public BoolOption RandomizePicoPicoSpawns { get; } = new(true);
 
-        [NoCreateControl]
-        public BoolOption RandomizeRefightTeleporters { get; } = new(true);
-        [NoCreateControl]
-        public BoolOption RandomizeRobotMasterStageSelection { get; } = new(true);
-        [NoCreateControl]
-        public BoolOption RandomizeSpecialWeaponReward { get; } = new(true);
+
+        [Description("Disallow Bubble Barrier Vulnerability")]
+        [Tooltip("Do not allow Bubble Lead to be the vulnerability of Crash barriers to avoid strange interactions especially during Boobeam fight.")]
+        public BoolOption DisallowBubbleBarrierWeakness { get; } = new(true);
     }
 }

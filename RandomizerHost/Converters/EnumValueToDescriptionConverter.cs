@@ -8,7 +8,7 @@ namespace RandomizerHost.Converters
 {
     public class EnumValueToDescriptionConverter : IValueConverter
     {
-        public Object Convert(Object in_Value, Type in_TargetType, Object in_Parameter, CultureInfo in_Culture)
+        public Object? Convert(Object? in_Value, Type? in_TargetType, Object? in_Parameter, CultureInfo? in_Culture)
         {
             if (typeof(String) != in_TargetType)
             {
@@ -29,7 +29,7 @@ namespace RandomizerHost.Converters
             }
         }
 
-        public Object ConvertBack(Object in_Value, Type in_TargetType, Object in_Parameter, CultureInfo in_Culture)
+        public Object? ConvertBack(Object? in_Value, Type? in_TargetType, Object? in_Parameter, CultureInfo? in_Culture)
         {
             throw new NotSupportedException();
         }
