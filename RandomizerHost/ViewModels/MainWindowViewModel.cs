@@ -31,17 +31,6 @@ namespace RandomizerHost.ViewModels
             this.SettingsPresets = new(Settings);
             this.SettingsPreset = this.SettingsPresets.Presets[0];
 
-            // If there are any missing fields in the defined presets, display them here
-            try
-            {
-                this.SettingsPresets.ValidatePresets(Settings.AllOptions);
-            }
-            catch (Exception e)
-            {
-                // There MUST be a better way to do this
-                MessageBox.Show(null, e.ToString(), "Error", MessageBox.MessageBoxButtons.Ok);
-            }
-
             // If the application configuration settings does not have a saved value,
             // try to load the Mega Man 2 rom from the executable path
             if (true == String.IsNullOrEmpty(this.AppConfigurationSettings.RomSourcePath))
