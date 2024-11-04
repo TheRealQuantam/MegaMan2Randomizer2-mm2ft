@@ -8,7 +8,7 @@ FrameCtr = $1c
 CtrlState = $23
 NumEtanks = $a7
 CurItemIdx = $a9 ; 0 if none
-ItemEnergies = $9b
+ItemEnergies = $9c
 Temp = $fd
 
 EnqueueSound = $c051
@@ -165,6 +165,7 @@ PickupEnergy:
 	ldx CurItemIdx
 	beq @Done
 	
+	dex
 	lda ItemEnergies, x
 	cmp #MAX_ENERGY
 	bcs @Done
