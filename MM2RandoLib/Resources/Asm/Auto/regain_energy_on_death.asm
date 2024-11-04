@@ -3,7 +3,7 @@
 NUM_ITEMS = $b
 MAX_ENERGY = $1c
 
-ItemEnergies = $9b
+ItemEnergies = $9c
 
 LoadStageTileset = $c45d
 
