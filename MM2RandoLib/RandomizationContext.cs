@@ -43,8 +43,7 @@ namespace MM2Randomizer
             AsmRoot = ResourceTree.Find("Asm");
         }
 
-        public readonly AsmEngine AsmEngine = new();
-        public readonly Assembler Assembler = new();
+        public readonly AsmEngine Assembler = new();
         public readonly ResourceNode AsmRoot;
         public readonly List<string> DefineSymbolLines = new();
         public readonly List<string> OptActAsmMods = new();
@@ -413,13 +412,12 @@ namespace MM2Randomizer
 
             CopyWilyTilesets(in_RomPath);
 
-            var engine = new AsmEngine();
-            var asm = new Assembler();
+            var asm = new AsmEngine();
             var rom = File.ReadAllBytes(TEMPORARY_FILE_NAME);
             AsmModuleFromResource("config.asm", asm);
             AsmModuleFromResource("prepatch.asm", asm);
 
-            rom = await engine.Apply(rom, asm);
+            rom = await asm.Apply(rom);
             Debug.Assert(rom is not null);
 
             File.WriteAllBytes(TEMPORARY_FILE_NAME, rom);
@@ -573,7 +571,7 @@ namespace MM2Randomizer
 
             // And compile
             var rom = File.ReadAllBytes(TEMPORARY_FILE_NAME);
-            rom = await AsmEngine.Apply(rom, Assembler);
+            rom = await Assembler.Apply(rom);
             Debug.Assert(rom is not null);
 
             File.WriteAllBytes(TEMPORARY_FILE_NAME, rom);

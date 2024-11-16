@@ -1354,6 +1354,7 @@
       <EmbeddedResource Remove="Properties\WeaponSpriteResources.resx" />
     </ItemGroup>
     <ItemGroup>
+      <PackageReference Include="js65.interop" Version="1.0.0-alpha2" />
       <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
       <PackageReference Include="System.Data.HashFunction.FNV" Version="2.0.0" />
       <PackageReference Include="System.Security.Cryptography.Algorithms" Version="4.3.1" />
@@ -1425,6 +1426,5 @@
     </ItemGroup>
     <ItemGroup>
       <ProjectReference Include="..\FtRandoLib\FtRandoLib.csproj" />
-      <ProjectReference Include="..\js65\integrations\dotnet\js65\js65.csproj" />
     </ItemGroup>    
 </Project>
