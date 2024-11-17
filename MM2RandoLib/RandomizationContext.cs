@@ -3,7 +3,11 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
+using System.Threading.Tasks;
+using js65;
+using MM2RandoLib.Settings.Options;
 using MM2Randomizer.Enums;
+using MM2Randomizer.Extensions;
 using MM2Randomizer.Patcher;
 using MM2Randomizer.Random;
 using MM2Randomizer.Randomizers;
@@ -18,8 +22,12 @@ using MM2Randomizer.Utilities;
 
 namespace MM2Randomizer
 {
+    using AsmEngine = ClearScriptEngine;
+
     public class RandomizationContext
     {
+        internal record OptionAction(IOption Option, OptionActionAttribute Action);
+
         internal record WriteSpec(int Offs, IReadOnlyList<byte> Data);
         internal record BlockCopySpec(int SrcOffs, int TgtOffs, int Size);
 
@@ -33,8 +41,13 @@ namespace MM2Randomizer
             this.Settings = in_Settings;
             // Create file name based on seed and game region
             this.FileName = $"MM2-RNG-{in_Seed.Identifier} ({in_Seed.SeedString}).nes";
-        }
 
+            AsmRoot = ResourceTree.Find("Asm");
+            AsmIncBase = ResourceTree.LoadUtf8Resource(
+                AsmRoot.Find("mm2r_base.inc"));
+
+            Assembler = CreateAssemblyEngine();
+        }
 
         //
         // Properties
@@ -57,6 +70,26 @@ namespace MM2Randomizer
         /// Quality of life hack: if InvisiPico, do NOT randomize Pico movement.
         /// </summary>
         public bool IsInvisiPico = false;
+
+        //
+        // Options System and Assembler Properties
+        //
+
+        private readonly Js65Options AssemblerOptions = new()
+        {
+            // Must exist for the FileResolve callback to be called
+            includePaths = [""],
+        };
+
+        public readonly AsmEngine Assembler;
+        public readonly ResourceNode AsmRoot;
+        public readonly string AsmIncBase;
+        public readonly List<string> DefineSymbolLines = new();
+
+        public readonly IReadOnlySet<string> SpecialAsmPaths = new HashSet<string> { "mm2r.inc", "original.nes", "prepatch.nes" };
+
+
+        public readonly Dictionary<IOption, Dictionary<ResourceNode, ResourceNode?>> OneIpsPerDirSelections = new(ReferenceEqualityComparer.Instance);
 
         //================
         // "CORE" MODULES
@@ -116,6 +149,9 @@ namespace MM2Randomizer
         {
             CreateInitialRom(TEMPORARY_FILE_NAME);
 
+            // Not certain whether this must come first
+            AsmModuleFromResource("config.asm");
+
             // In tournament mode, offset the seed by 1 call, making seeds mode-dependent
             /*
             if (this.Settings.EnableSpoilerFreeMode)
@@ -143,13 +179,7 @@ namespace MM2Randomizer
             MiscHacks.FindAllPatchesWithCommonBankChanges(ResourceTree);
 #endif
 
-            Dictionary<ResourceNode, ResourceNode?>? bossPatches = null,
-                enemySprites = null,
-                envSprites = null,
-                screenPatches = null,
-                pickupPatches = null,
-                weaponSprites = null;
-            Dictionary<EBossIndex, ResourceNode?>? bossSprites = null;
+            ParseOptionActions(false);
 
             // List of randomizer modules to use; will add modules based on checkbox states
             List<IRandomizer> randomizers = new List<IRandomizer>();
@@ -208,13 +238,12 @@ namespace MM2Randomizer
                 randomizers.Add(this.RandomTilemap);
             }
 
-            // Apply random sprite changes
             // Boss sprites need to be randomized before running normal randomizers because InvisiPico is a special case
             if (spriteOpts.RandomizeBossSprites.Value)
             {
-                bossPatches = MiscHacks.ApplyOneIpsPerDir(
+                var bossPatches = MiscHacks.ApplyOneIpsPerDir(
                     this, "SpritePatches.Bosses");
-                bossSprites = bossPatches
+                var bossSprites = bossPatches
                     .Where(kv => BossDirNames.ContainsKey(kv.Key.Name))
                     .ToDictionary(kv => BossDirNames[kv.Key.Name], kv => kv.Value);
 
@@ -231,29 +260,7 @@ namespace MM2Randomizer
                 Debug.WriteLine(randomizer);
             }
 
-            if (spriteOpts.RandomizeEnemySprites.Value)
-            {
-                enemySprites = MiscHacks.ApplyOneIpsPerDir(
-                    this, "SpritePatches.Enemies");
-            }
-
-            if (spriteOpts.RandomizeSpecialWeaponSprites.Value)
-            {
-                weaponSprites = MiscHacks.ApplyOneIpsPerDir(
-                    this, "SpritePatches.Weapons");
-            }
-
-            if (spriteOpts.RandomizeItemPickupSprites.Value)
-            {
-                pickupPatches = MiscHacks.ApplyOneIpsPerDir(
-                    this, "SpritePatches.Pickups");
-            }
-
-            if (spriteOpts.RandomizeEnvironmentSprites.Value)
-            {
-                envSprites = MiscHacks.ApplyOneIpsPerDir(
-                    this, "SpritePatches.Environment", rebasePatch: false);
-            }
+            ApplyOptionActions();
 
 
             ///==========================
@@ -265,6 +272,8 @@ namespace MM2Randomizer
 
             this.Settings.ActualizeCosmeticSettings(this.Seed);
             var cosmOpts = Settings.CosmeticOptions;
+
+            ParseOptionActions(true);
 
             // List of randomizer modules to use; will add modules based on checkbox states
             List<IRandomizer> cosmeticRandomizers = new List<IRandomizer>();
@@ -291,13 +300,6 @@ namespace MM2Randomizer
                 Debug.WriteLine(cosmetic);
             }
 
-            // Apply random sprite changes
-            if (cosmOpts.RandomizeMenusAndTransitionScreens.Value)
-            {
-                screenPatches = MiscHacks.ApplyOneIpsPerDir(
-                    this, "SpritePatches.MenusAndTransitionScreens");
-            }
-
 
             // ================================================
             // No randomization after this point, only patching
@@ -321,33 +323,7 @@ namespace MM2Randomizer
                     this.RandomInGameText);
             }
 
-            if (gameplayOpts.RandomizeEnemySpawns.Value)
-            {
-                MiscHacks.FixM445PaletteGlitch(this.Patch);
-            }
-
             // Apply final optional gameplay modifications
-            if (gameplayOpts.FasterCutsceneText.Value)
-            {
-                MiscHacks.SetFastWeaponGetText(this.Patch);
-                MiscHacks.SetFastReadyText(this.Patch);
-                MiscHacks.SetFastWilyMap(this.Patch);
-                MiscHacks.SkipItemGetPages(this.Patch);
-            }
-
-            if (gameplayOpts.BurstChaserMode.Value)
-            {
-                MiscHacks.SetBurstChaser(this.Patch);
-            }
-
-            if (qolOpts.DisableFlashingEffects.Value)
-            {
-                MiscHacks.DisableScreenFlashing(
-                    this.Patch,
-                    gameplayOpts.FasterCutsceneText.Value,
-                    cosmOpts.RandomizeColorPalettes.Value);
-            }
-
             MiscHacks.SetHitPointChargingSpeed(
                 this.Patch,
                 chargingOpts.HitPoints.Value);
@@ -356,61 +332,7 @@ namespace MM2Randomizer
                 this.Patch,
                 chargingOpts.WeaponEnergy.Value);
 
-            // PreventETankUseAtFullLife must be applied before SetEnergyTankChargingSpeed
-            MiscHacks.PreventETankUseAtFullLife(this.Patch);
-            MiscHacks.SetEnergyTankChargingSpeed(
-                this.Patch,
-                chargingOpts.EnergyTank.Value);
-
-            MiscHacks.SetRobotMasterEnergyChargingSpeed(
-                this.Patch,
-                chargingOpts.RobotMasterEnergy.Value);
-
-            MiscHacks.SetCastleBossEnergyChargingSpeed(
-                this.Patch,
-                chargingOpts.CastleBossEnergy.Value);
-
             MiscHacks.DrawTitleScreenChanges(this.Patch, this.Seed.Identifier, this.Settings);
-            MiscHacks.SetWily5NoMusicChange(this.Patch);
-            MiscHacks.NerfDamageValues(this.Patch);
-            MiscHacks.SetETankKeep(this.Patch);
-            MiscHacks.SetFastBossDefeatTeleport(this.Patch);
-
-
-            if (qolOpts.EnableUnderwaterLagReduction.Value)
-            {
-                MiscHacks.ReduceUnderwaterLag(this.Patch);
-            }
-
-            if (qolOpts.DisableWaterfall.Value)
-            {
-                this.Patch.Add(0xFE10, (byte)1, "Disable Bubble Man stage palette animation");
-            }
-
-            if (qolOpts.EnableLeftwardWallEjection.Value)
-            {
-                MiscHacks.EnableLeftwardWallEjection(ResourceTree, this.Patch, RandomizationContext.TEMPORARY_FILE_NAME);
-            }
-
-            if (qolOpts.DisablePauseLock.Value)
-            {
-                MiscHacks.DisablePauseLock(ResourceTree, this.Patch, RandomizationContext.TEMPORARY_FILE_NAME);
-            }
-
-            if (gameplayOpts.MercilessMode.Value)
-            {
-                MiscHacks.EnableMercilessMode(ResourceTree, this.Patch, RandomizationContext.TEMPORARY_FILE_NAME);
-            }
-
-            if (qolOpts.EnableBirdEggFix.Value)
-            {
-                MiscHacks.EnableBirdEggFix(ResourceTree, this.Patch, RandomizationContext.TEMPORARY_FILE_NAME);
-            }
-
-            if (qolOpts.StageSelectDefault.Value)
-            {
-                MiscHacks.MakeStageSelectDefault(Patch);
-            }
 
             MiscHacks.SetNewMegaManSprite(
                 ResourceTree,
@@ -435,12 +357,11 @@ namespace MM2Randomizer
                 this.Patch,
                 RandomizationContext.TEMPORARY_FILE_NAME,
                 cosmOpts.Font.Value);
-
-
-            // Modify the Wily 5 game loop so that large weapon energy refills
-            // can be spawned in the refight teleporter room
-            MiscHacks.AddWily5SubroutineWithItemSpawns(this.Patch);
             MiscHacks.AddLargeWeaponEnergyRefillPickupsToWily5TeleporterRoom(this.Patch);
+
+            ApplyOptionActions();
+
+            CompileAssembly();
 
             // Apply patch with randomized content
             this.Patch.ApplyRandoPatch(RandomizationContext.TEMPORARY_FILE_NAME);
@@ -507,10 +428,18 @@ namespace MM2Randomizer
             // Apply pre-patch changes via IPS patch (manual title screen, stage select, stage changes, player sprite)
             this.Patch.ApplyIPSPatch(
                 in_RomPath, ResourceTree.LoadResource("mm2ft.ips"), false);
-            this.Patch.ApplyIPSPatch(
-                in_RomPath, ResourceTree.LoadResource("mm2rng_prepatch.ips"));
 
             CopyWilyTilesets(in_RomPath);
+
+            var asm = CreateAssemblyEngine();
+
+            var rom = File.ReadAllBytes(TEMPORARY_FILE_NAME);
+            AsmModuleFromResource("config.asm", asm);
+            AsmModuleFromResource("prepatch.asm", asm);
+
+            rom = asm.ApplySynchronously(rom);
+
+            File.WriteAllBytes(TEMPORARY_FILE_NAME, rom);
         }
 
         /// <summary>
@@ -543,6 +472,191 @@ namespace MM2Randomizer
                 ]);
         }
 
+        /// <summary>
+        /// Process the list of option actions and, for all applicable to the selected settings, either execute them if they can be executed immediately with no adverse effects or queue them for execution at the proper time. The primary purpose of this is to delay assembly as long as possible to allow the most symbols to be defined, until js65's implementation of .include is fixed.
+        /// </summary>
+        private void ParseOptionActions(bool cosmOpts)
+        {
+            foreach (var opt in Settings.OptionsWithActions)
+            {
+                if (opt.Info!.IsCosmetic != cosmOpts)
+                    continue;
+
+                foreach (var act in opt.Info!.Actions)
+                {
+                    if (act is OptionValueActionAttribute valAct)
+                    {
+                        object? cmpValue = valAct.OptionValue;
+                        if (cmpValue is null)
+                        {
+                            Debug.Assert(opt is BoolOption);
+
+                            cmpValue = true;
+                        }
+
+                        if (!cmpValue.Equals(opt.Value))
+                            continue;
+
+                        if (act is DefineSymbolAttribute symAct)
+                        {
+                            // Define can be executed immediately
+                            string valueStr = symAct.Value is not null
+                                ? $" ${symAct.Value:x}"
+                                : "";
+                            DefineSymbolLines.Add(
+                                $".define {symAct.SymbolName}{valueStr}");
+                        }
+                        else if (act is AssembleFileAttribute asmAct)
+                            AsmModuleFromResource(AsmRoot.Find(asmAct.Path));
+                        else if (act is PatchRomAttribute patchAct)
+                        {
+                            // Patches are inherently deferred
+                            Patch.Add(
+                                patchAct.RomOffset,
+                                patchAct.Data,
+                                $"Option '{opt.Info.Name}' '{opt.Value}' PatchRom action");
+                        }
+                        else
+                            OptActsQueue.Add(new(opt, act));
+                    }
+                    else
+                    {
+                        if (act is DefineValueSymbolAttribute symAct)
+                        {
+                            DefineSymbolLines.Add($".define {symAct.SymbolName} ${(int)opt.Value:x}");
+                        }
+                        else if (act is WriteValueToRomAttribute writeAct)
+                        {
+                            // Patches are inherently deferred
+                            var type = opt.Info.Type;
+                            int value = (int)opt.Value;
+                            Patch.Add(
+                                writeAct.RomOffset,
+                                checked((byte)value),
+                                $"Option '{opt.Info.Name}' '{opt.Value}' WriteValueToRom action");
+                        }
+                        else
+                            OptActsQueue.Add(new(opt, act));
+                    }
+                }
+            }
+
+            return;
+        }
+
+        private void ApplyOptionActions()
+        {
+            foreach (var (opt, act) in OptActsQueue)
+            {
+                if (act is OptionValueActionAttribute valAct)
+                {
+                    if (act is ApplyOneIpsPerDirAttribute opdAct)
+                    {
+                        var selFiles = MiscHacks.ApplyOneIpsPerDir(
+                            ResourceTree,
+                            Seed,
+                            Patch,
+                            opdAct.RootPath,
+                            opdAct.AllowNone,
+                            TEMPORARY_FILE_NAME,
+                            opdAct.ApplyRebaseIps ? opdAct.RebaseIps : null);
+                        OneIpsPerDirSelections[opt] = selFiles;
+                    }
+                    else
+                        Debug.Assert(false);
+                }
+                else
+                {
+                    Debug.Assert(false);
+                }
+            }
+
+            OptActsQueue.Clear();
+
+            return;
+        }
+
+        private AsmEngine CreateAssemblyEngine()
+        {
+            AsmEngine asm = new(AssemblerOptions);
+
+            asm.Callbacks!.FileResolve = (incPath, relPath) => Task.FromResult(AsmFileResolveCallback(incPath, relPath));
+            asm.Callbacks.FileReadText = (path) => Task.FromResult(AsmFileReadTextCallback(path));
+            asm.Callbacks.FileReadBinary = (path) => Task.FromResult(AsmFileReadBinaryCallback(path));
+
+            return asm;
+        }
+
+        private void CompileAssembly()
+        {
+            // Setup the obligatory assembly modules
+            foreach (var node in AsmRoot.Find("Auto").Files)
+                AsmModuleFromResource(node);
+
+            // And compile
+            var rom = File.ReadAllBytes(TEMPORARY_FILE_NAME);
+            rom = Assembler.ApplySynchronously(rom);
+
+            File.WriteAllBytes(TEMPORARY_FILE_NAME, rom);
+        }
+
+        private string AsmFileResolveCallback(string incPath, string relPath)
+        {
+            if (incPath == "")
+            {
+                if (SpecialAsmPaths.Contains(relPath))
+                    return relPath;
+
+                //// TODO: Support loading other include files
+            }
+
+#nullable disable
+            return null;
+#nullable restore
+        }
+
+        private string AsmFileReadTextCallback(string path)
+        {
+            if (path == "mm2r.inc")
+                return string.Join(
+                    "\n", DefineSymbolLines.Append(AsmIncBase));
+            else
+#nullable disable
+                //// TODO: Support loading other include files
+                return null;
+#nullable restore
+        }
+
+        private byte[] AsmFileReadBinaryCallback(string path)
+        {
+            if (path == "original.nes")
+                return File.ReadAllBytes(Settings.RomSourcePath);
+            //// Not sure this is a good idea
+            else if (path == "prepatch.nes")
+                return File.ReadAllBytes(TEMPORARY_FILE_NAME);
+            else
+#nullable disable
+                return null;
+#nullable restore
+        }
+
+        public AsmModule AsmModuleFromResource(
+            ResourceNode node, Assembler? asm = null)
+        {
+            if (asm is null)
+                asm = Assembler;
+
+            var mod = asm.Module();
+            mod.Code(ResourceTree.LoadUtf8Resource(node), node.Path);
+
+            return mod;
+        }
+
+        public AsmModule AsmModuleFromResource(
+            string path, 
+            Assembler? asm = null)
+            => AsmModuleFromResource(AsmRoot.Find(path), asm);
+
         //
         // Private Data Members
         //
@@ -563,5 +677,8 @@ namespace MM2Randomizer
             { "QuickMan", EBossIndex.Quick },
             { "WoodMan", EBossIndex.Wood },
         };
+
+        private readonly List<OptionAction> OptActsQueue = new();
+
     }
 }

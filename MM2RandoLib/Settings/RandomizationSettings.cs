@@ -75,9 +75,11 @@ namespace MM2Randomizer.Settings
         public IReadOnlyList<IOption> AllOptions => opts;
         public IReadOnlyDictionary<string, IOption> OptionsByPath => optsByPath;
         public IReadOnlyDictionary<string, OptionGroup> GroupsByPath => grpsByPath;
+        public IReadOnlyList<IOption> OptionsWithActions => optsWithActions;
 
 
         readonly List<IOption> opts = new();
+        readonly List<IOption> optsWithActions = new();
         readonly Dictionary<string, IOption> optsByPath = new();
         readonly Dictionary<string, OptionGroup> grpsByPath = new();
 
@@ -123,6 +125,8 @@ namespace MM2Randomizer.Settings
 
             BuildOptionsMetadata(optPath, this, checkedObjs);
 
+            optsWithActions.AddRange(opts.Where(o => o.Info!.Actions.Any()));
+
             return;
         }
 
@@ -167,7 +171,11 @@ namespace MM2Randomizer.Settings
             IOption opt,
             bool isCosmetic)
         {
-            opt.Info = new(optPath.Reverse().Append(mbrInfo), opt, isCosmetic);
+            opt.Info = new(
+                optPath.Reverse().Append(mbrInfo), 
+                opt, 
+                isCosmetic,
+                mbrInfo.GetCustomAttributes<OptionActionAttribute>()?.ToArray());
 
             opts.Add(opt);
             optsByPath[opt.Info.PathString] = opt;

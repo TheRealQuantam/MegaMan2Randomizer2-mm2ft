@@ -32,6 +32,18 @@
       <DebugType>full</DebugType>
       <DebugSymbols>true</DebugSymbols>
     </PropertyGroup>
+    <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
+      <NoWarn>1701;1702;CA1416</NoWarn>
+    </PropertyGroup>
+    <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+      <NoWarn>1701;1702;CA1416</NoWarn>
+    </PropertyGroup>
+    <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
+      <NoWarn>1701;1702;CA1416</NoWarn>
+    </PropertyGroup>
+    <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+      <NoWarn>1701;1702;CA1416</NoWarn>
+    </PropertyGroup>
     <ItemGroup>
       <Compile Remove="Data\BinaryBuffer.cs" />
       <Compile Remove="Data\FtmBinary.cs" />
@@ -50,18 +62,30 @@
       <Compile Remove="Resources\SpritePatches\WeaponSpriteRandomizer.cs" />
     </ItemGroup>
     <ItemGroup>
+      <None Remove="Resources\Asm\Auto\blocky_hitbox_fix.asm" />
+      <None Remove="Resources\Asm\Auto\clown_bot_fix.asm" />
+      <None Remove="Resources\Asm\Auto\etank_refill.asm" />
+      <None Remove="Resources\Asm\Auto\fast_boss_end.asm" />
+      <None Remove="Resources\Asm\Auto\fix_password.asm" />
+      <None Remove="Resources\Asm\Auto\misc_hacks.asm" />
+      <None Remove="Resources\Asm\Auto\press_hitbox_fix.asm" />
+      <None Remove="Resources\Asm\Auto\show_title_logo_sprites.asm" />
+      <None Remove="Resources\Asm\Auto\wily_5_respawns.asm" />
+      <None Remove="Resources\Asm\config.asm" />
+      <None Remove="Resources\Asm\mm2r_base.inc" />
+      <None Remove="Resources\Asm\Options\bird_egg_fix.asm" />
+      <None Remove="Resources\Asm\Options\burst_chaser.asm" />
+      <None Remove="Resources\Asm\Options\disable_flashing.asm" />
+      <None Remove="Resources\Asm\Options\faster_cutscenes.asm" />
+      <None Remove="Resources\Asm\Options\merciless.asm" />
+      <None Remove="Resources\Asm\Options\pause_with_items.asm" />
+      <None Remove="Resources\Asm\prepatch.asm" />
       <None Remove="Resources\Batton_Batman.ips" />
       <None Remove="Resources\EnemySet.xml" />
       <None Remove="Resources\EnemyWeaknessSet.xml" />
       <None Remove="Resources\FtSoundTrackConfiguration.json5" />
-      <None Remove="Resources\leftwardwallejectionpatch.ips" />
       <None Remove="Resources\level_components.json" />
-      <None Remove="Resources\mercilesspatch.ips" />
-      <None Remove="Resources\mm2bird_egg_fix.ips" />
-      <None Remove="Resources\mm2clown_bot_fix.ips" />
       <None Remove="Resources\mm2ft.ips" />
-      <None Remove="Resources\mm2rng_prepatch.ips" />
-      <None Remove="Resources\pausepatch.ips" />
       <None Remove="Resources\PlayerCharacter_BadBoxArt.ips" />
       <None Remove="Resources\PlayerCharacter_Stantler.ips" />
       <None Remove="Resources\SniperJoeAndSniperArmor_CBSDOat.ips" />
@@ -681,16 +705,29 @@
       <None Remove="Resources\SpritePatches\Weapons\TimeStopper\TimeStopper_RockMan2Plus.ips" />
     </ItemGroup>
     <ItemGroup>
+      <EmbeddedResource Include="Resources\Asm\Auto\blocky_hitbox_fix.asm" />
+      <EmbeddedResource Include="Resources\Asm\Auto\clown_bot_fix.asm" />
+      <EmbeddedResource Include="Resources\Asm\Auto\etank_refill.asm" />
+      <EmbeddedResource Include="Resources\Asm\Auto\fast_boss_end.asm" />
+      <EmbeddedResource Include="Resources\Asm\Auto\fix_password.asm" />
+      <EmbeddedResource Include="Resources\Asm\Auto\misc_hacks.asm" />
+      <EmbeddedResource Include="Resources\Asm\Auto\press_hitbox_fix.asm" />
+      <EmbeddedResource Include="Resources\Asm\Auto\show_title_logo_sprites.asm" />
+      <EmbeddedResource Include="Resources\Asm\Auto\wily_5_respawns.asm" />
+      <EmbeddedResource Include="Resources\Asm\config.asm" />
+      <EmbeddedResource Include="Resources\Asm\mm2r_base.inc" />
+      <EmbeddedResource Include="Resources\Asm\Options\bird_egg_fix.asm" />
+      <EmbeddedResource Include="Resources\Asm\Options\burst_chaser.asm" />
+      <EmbeddedResource Include="Resources\Asm\Options\disable_flashing.asm" />
+      <EmbeddedResource Include="Resources\Asm\Options\faster_cutscenes.asm" />
+      <EmbeddedResource Include="Resources\Asm\Options\merciless.asm" />
+      <EmbeddedResource Include="Resources\Asm\Options\pause_with_items.asm" />
+      <EmbeddedResource Include="Resources\Asm\prepatch.asm" />
       <EmbeddedResource Include="Resources\EnemySet.xml" />
       <EmbeddedResource Include="Resources\EnemyWeaknessSet.xml" />
       <EmbeddedResource Include="Resources\FtSoundTrackConfiguration.json5" />
-      <EmbeddedResource Include="Resources\leftwardwallejectionpatch.ips" />
       <EmbeddedResource Include="Resources\level_components.json" />
-      <EmbeddedResource Include="Resources\mercilesspatch.ips" />
-      <EmbeddedResource Include="Resources\mm2bird_egg_fix.ips" />
       <EmbeddedResource Include="Resources\mm2ft.ips" />
-      <EmbeddedResource Include="Resources\mm2rng_prepatch.ips" />
-      <EmbeddedResource Include="Resources\pausepatch.ips" />
       <EmbeddedResource Include="Resources\SoundTrackConfiguration.json5" />
       <EmbeddedResource Include="Resources\SpritePatches\Bosses\AirMan\AirMan_Another.ips" />
       <EmbeddedResource Include="Resources\SpritePatches\Bosses\AirMan\AirMan_CutMansBadScissorsDay.ips" />
@@ -1317,6 +1354,7 @@
       <EmbeddedResource Remove="Properties\WeaponSpriteResources.resx" />
     </ItemGroup>
     <ItemGroup>
+      <PackageReference Include="js65.interop" Version="1.0.0-alpha2" />
       <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
       <PackageReference Include="System.Data.HashFunction.FNV" Version="2.0.0" />
       <PackageReference Include="System.Security.Cryptography.Algorithms" Version="4.3.1" />
@@ -1388,11 +1426,5 @@
     </ItemGroup>
     <ItemGroup>
       <ProjectReference Include="..\FtRandoLib\FtRandoLib.csproj" />
-    </ItemGroup>
-    <ItemGroup>
-      <None Update="Resources\mm2rng_prepatch.asm">
-        <Generator></Generator>
-      </None>
-    </ItemGroup>
-    
+    </ItemGroup>    
 </Project>
