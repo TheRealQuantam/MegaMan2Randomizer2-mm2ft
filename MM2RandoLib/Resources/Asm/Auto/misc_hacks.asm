@@ -1,10 +1,6 @@
 ; This file contains mandatory assorted hacks that were considered too minor to give their own assembly file but have no option to attach actions to. Unlike prepatch.asm, this file is compiled at the same time as everything else, so it has access to .reloc and symbol definitions.
 
-.macpack common
-
-.macro NO_OP count
-	.res count, $ea
-.endmacro
+.include "mm2r.inc"
 
 ; Disable refight boss music
 .segment "BANKB"

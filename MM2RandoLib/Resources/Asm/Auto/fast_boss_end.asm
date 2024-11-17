@@ -1,10 +1,6 @@
 ; This will change the delay defeating a boss and teleporting out of the field to be much shorter. The victory fanfare will not play, and you teleport out exactly 10 frames after landing the killing blow on a robot master, and faster for Wily bosses as well. This indirectly fixes the issue of potentially zipping out of Bubbleman or other robot masters' chambers, since you teleport immediately.
 
-.macpack common
-
-.macro NO_OP count
-	.res count, $ea
-.endmacro
+.include "mm2r.inc"
 
 ; 0x02E0AF: Time until teleport after fanfare starts. ($FD, change to $40)
 ; 0x02E0A2: Time until boss-defeat fanfare starts. Note that if set too low without any additional changes, a softlock may occur after some Wily bosses. Change from $FD to $10, then modify other areas that set the intial value of $05A7 (address storing our comparison). It turns out taht Mechadragon, Picopico-kun, and Gutsdozer set the intial value to $70 (at 0x02D16F). Boobeam has its own special routine with extra explosions, setting the initial value to $80 (at 0x02D386). Wily Machine and Alien do not call these subroutines and no further modification is needed.

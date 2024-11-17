@@ -1,4 +1,4 @@
-.macpack common
+.include "mm2r.inc"
 
 .segment "BANKD"
 

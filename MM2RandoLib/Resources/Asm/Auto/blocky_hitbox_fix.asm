@@ -1,6 +1,4 @@
-.macpack common
-
-BLOCKY_OBJ_ID = $31
+.include "mm2r.inc"
 
 .segment "BANKE"
 

@@ -1,6 +1,4 @@
-.macpack common
-
-CLOWN_GEAR_OBJ_ID = $29
+.include "mm2r.inc"
 
 .segment "BANKE"
 

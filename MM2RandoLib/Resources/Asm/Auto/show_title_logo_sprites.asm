@@ -1,9 +1,6 @@
-.macpack common
+.include "mm2r.inc"
 
 ; The code to draw the RM2 logo sprites is still in the US ROM, it just needs to be reintroduced to the active path.
-
-DrawTitleLogoSprites = $a60f
-WaitForNmiOutOfGame = $c0ab
 
 .segment "BANKD"
 

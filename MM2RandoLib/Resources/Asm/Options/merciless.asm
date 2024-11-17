@@ -1,8 +1,4 @@
-.macpack common
-
-IframesLeft = $4b
-
-EnemyContactDamageTable = $ed5c
+.include "mm2r.inc"
 
 .segment "BANKB"
 

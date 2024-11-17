@@ -3,9 +3,11 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
+using System.Threading.Tasks;
 using js65;
 using MM2RandoLib.Settings.Options;
 using MM2Randomizer.Enums;
+using MM2Randomizer.Extensions;
 using MM2Randomizer.Patcher;
 using MM2Randomizer.Random;
 using MM2Randomizer.Randomizers;
@@ -41,14 +43,11 @@ namespace MM2Randomizer
             this.FileName = $"MM2-RNG-{in_Seed.Identifier} ({in_Seed.SeedString}).nes";
 
             AsmRoot = ResourceTree.Find("Asm");
+            AsmIncBase = ResourceTree.LoadUtf8Resource(
+                AsmRoot.Find("mm2r_base.inc"));
+
+            Assembler = CreateAssemblyEngine();
         }
-
-        public readonly AsmEngine Assembler = new();
-        public readonly ResourceNode AsmRoot;
-        public readonly List<string> DefineSymbolLines = new();
-        public readonly List<string> OptActAsmMods = new();
-
-        public readonly Dictionary<IOption, Dictionary<ResourceNode, ResourceNode?>> OneIpsPerDirSelections = new(ReferenceEqualityComparer.Instance);
 
         //
         // Properties
@@ -71,6 +70,26 @@ namespace MM2Randomizer
         /// Quality of life hack: if InvisiPico, do NOT randomize Pico movement.
         /// </summary>
         public bool IsInvisiPico = false;
+
+        //
+        // Options System and Assembler Properties
+        //
+
+        private readonly Js65Options AssemblerOptions = new()
+        {
+            // Must exist for the FileResolve callback to be called
+            includePaths = [""],
+        };
+
+        public readonly AsmEngine Assembler;
+        public readonly ResourceNode AsmRoot;
+        public readonly string AsmIncBase;
+        public readonly List<string> DefineSymbolLines = new();
+
+        public readonly IReadOnlySet<string> SpecialAsmPaths = new HashSet<string> { "mm2r.inc", "original.nes", "prepatch.nes" };
+
+
+        public readonly Dictionary<IOption, Dictionary<ResourceNode, ResourceNode?>> OneIpsPerDirSelections = new(ReferenceEqualityComparer.Instance);
 
         //================
         // "CORE" MODULES
@@ -402,7 +421,7 @@ namespace MM2Randomizer
         /// <summary>
         /// Apply the base patches to the ROM that must come before anything else including other IPS files.
         /// </summary>
-        private async void CreateInitialRom(string in_RomPath)
+        private void CreateInitialRom(string in_RomPath)
         {
             File.Copy(this.Settings.RomSourcePath, in_RomPath, true);
 
@@ -412,13 +431,13 @@ namespace MM2Randomizer
 
             CopyWilyTilesets(in_RomPath);
 
-            var asm = new AsmEngine();
+            var asm = CreateAssemblyEngine();
+
             var rom = File.ReadAllBytes(TEMPORARY_FILE_NAME);
             AsmModuleFromResource("config.asm", asm);
             AsmModuleFromResource("prepatch.asm", asm);
 
-            rom = await asm.Apply(rom);
-            Debug.Assert(rom is not null);
+            rom = asm.ApplySynchronously(rom);
 
             File.WriteAllBytes(TEMPORARY_FILE_NAME, rom);
         }
@@ -488,7 +507,7 @@ namespace MM2Randomizer
                                 $".define {symAct.SymbolName}{valueStr}");
                         }
                         else if (act is AssembleFileAttribute asmAct)
-                            OptActAsmMods.Add(asmAct.Path);
+                            AsmModuleFromResource(AsmRoot.Find(asmAct.Path));
                         else if (act is PatchRomAttribute patchAct)
                         {
                             // Patches are inherently deferred
@@ -557,24 +576,68 @@ namespace MM2Randomizer
             return;
         }
 
-        private async void CompileAssembly()
+        private AsmEngine CreateAssemblyEngine()
         {
-            var asmRoot = ResourceTree.Find("Asm");
+            AsmEngine asm = new(AssemblerOptions);
 
+            asm.Callbacks!.FileResolve = (incPath, relPath) => Task.FromResult(AsmFileResolveCallback(incPath, relPath));
+            asm.Callbacks.FileReadText = (path) => Task.FromResult(AsmFileReadTextCallback(path));
+            asm.Callbacks.FileReadBinary = (path) => Task.FromResult(AsmFileReadBinaryCallback(path));
+
+            return asm;
+        }
+
+        private void CompileAssembly()
+        {
             // Setup the obligatory assembly modules
-            foreach (var node in asmRoot.Find("Auto").Files)
+            foreach (var node in AsmRoot.Find("Auto").Files)
                 AsmModuleFromResource(node);
-
-            // And the rest
-            foreach (string path in OptActAsmMods)
-                AsmModuleFromResource(asmRoot.Find(path));
 
             // And compile
             var rom = File.ReadAllBytes(TEMPORARY_FILE_NAME);
-            rom = await Assembler.Apply(rom);
-            Debug.Assert(rom is not null);
+            rom = Assembler.ApplySynchronously(rom);
 
             File.WriteAllBytes(TEMPORARY_FILE_NAME, rom);
+        }
+
+        private string AsmFileResolveCallback(string incPath, string relPath)
+        {
+            if (incPath == "")
+            {
+                if (SpecialAsmPaths.Contains(relPath))
+                    return relPath;
+
+                //// TODO: Support loading other include files
+            }
+
+#nullable disable
+            return null;
+#nullable restore
+        }
+
+        private string AsmFileReadTextCallback(string path)
+        {
+            if (path == "mm2r.inc")
+                return string.Join(
+                    "\n", DefineSymbolLines.Append(AsmIncBase));
+            else
+#nullable disable
+                //// TODO: Support loading other include files
+                return null;
+#nullable restore
+        }
+
+        private byte[] AsmFileReadBinaryCallback(string path)
+        {
+            if (path == "original.nes")
+                return File.ReadAllBytes(Settings.RomSourcePath);
+            //// Not sure this is a good idea
+            else if (path == "prepatch.nes")
+                return File.ReadAllBytes(TEMPORARY_FILE_NAME);
+            else
+#nullable disable
+                return null;
+#nullable restore
         }
 
         public AsmModule AsmModuleFromResource(
@@ -583,8 +646,8 @@ namespace MM2Randomizer
             if (asm is null)
                 asm = Assembler;
 
-            var mod = Assembler.Module();
-            mod.Code(string.Join("\n", DefineSymbolLines.Append(ResourceTree.LoadUtf8Resource(node))), node.Path);
+            var mod = asm.Module();
+            mod.Code(ResourceTree.LoadUtf8Resource(node), node.Path);
 
             return mod;
         }

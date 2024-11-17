@@ -1,4 +1,4 @@
-.macpack common
+.include "mm2r.inc"
 
 ; This modifies the game loop to spawn weapon energy pickups in Wily 5.
 

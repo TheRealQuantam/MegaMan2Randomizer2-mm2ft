@@ -72,7 +72,7 @@
       <None Remove="Resources\Asm\Auto\show_title_logo_sprites.asm" />
       <None Remove="Resources\Asm\Auto\wily_5_respawns.asm" />
       <None Remove="Resources\Asm\config.asm" />
-      <None Remove="Resources\Asm\mm2r.inc" />
+      <None Remove="Resources\Asm\mm2r_base.inc" />
       <None Remove="Resources\Asm\Options\bird_egg_fix.asm" />
       <None Remove="Resources\Asm\Options\burst_chaser.asm" />
       <None Remove="Resources\Asm\Options\disable_flashing.asm" />
@@ -715,7 +715,7 @@
       <EmbeddedResource Include="Resources\Asm\Auto\show_title_logo_sprites.asm" />
       <EmbeddedResource Include="Resources\Asm\Auto\wily_5_respawns.asm" />
       <EmbeddedResource Include="Resources\Asm\config.asm" />
-      <EmbeddedResource Include="Resources\Asm\mm2r.inc" />
+      <EmbeddedResource Include="Resources\Asm\mm2r_base.inc" />
       <EmbeddedResource Include="Resources\Asm\Options\bird_egg_fix.asm" />
       <EmbeddedResource Include="Resources\Asm\Options\burst_chaser.asm" />
       <EmbeddedResource Include="Resources\Asm\Options\disable_flashing.asm" />

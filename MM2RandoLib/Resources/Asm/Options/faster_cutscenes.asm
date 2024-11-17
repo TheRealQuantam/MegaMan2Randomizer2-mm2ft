@@ -1,6 +1,4 @@
-.macpack common
-
-LevelIdx = $2a
+.include "mm2r.inc"
 
 .segment "BANKD"
 

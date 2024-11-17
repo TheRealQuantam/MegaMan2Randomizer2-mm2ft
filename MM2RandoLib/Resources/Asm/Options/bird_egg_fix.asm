@@ -1,6 +1,4 @@
-.macpack common
-
-PIPI_EGG_OBJ_ID = $3a
+.include "mm2r.inc"
 
 ;.include "mm2r.inc"
 

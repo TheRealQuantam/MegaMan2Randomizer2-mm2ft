@@ -1,9 +1,4 @@
-.macpack common
-
-LIFE_FILL_SFX_ID = $28
-
-WaitForNmi = $c0ab
-EnqueueSound = $c051
+.include "mm2r.inc"
 
 ; Original E-Tank Menu Command begins at 0D:9281:
 ; $9281: Menu Page and Menu Position Checking.        
@@ -47,7 +42,7 @@ EnqueueSound = $c051
 	JSR EtankIncreaseHealth ; Call code that wouldn't fit here
 
 	JSR $9396 ; Do mostly ordinary stuff
-	JSR WaitForNmi
+	JSR WaitForNmiOutOfGame
 
 	LDA $6C0 ; If life not full loop, else done
 	CMP #$1C
@@ -60,7 +55,7 @@ EtankIncreaseHealth:
 
 	INC $6C0 ; Increase life
 
-	LDA #LIFE_FILL_SFX_ID
+	LDA #ENERGY_FILL_SFX_ID
 	JMP EnqueueSound
 
 +

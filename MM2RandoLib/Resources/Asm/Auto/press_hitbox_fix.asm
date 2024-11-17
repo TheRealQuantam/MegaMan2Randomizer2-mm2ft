@@ -1,11 +1,4 @@
-.macpack common
-
-PRESS_OBJ_ID = $30
-PRESS_CHAIN_OBJ_ID = $52
-
-CurObjIdx = $2b
-
-SpawnEnemyFromEnemy = $f159
+.include "mm2r.inc"
 
 .segment "BANKE"
 

@@ -1,12 +1,4 @@
-.macpack common
-
-;;; TODO: Pass this from code
-WEAPON_TO_STAGE_INDEX_MAP_ADDR = $bff8
-
-WpnsAcquiredMask = $9a
-ItemsAcquiredMask = $9b
-
-StageItemRewardMasks = $c281
+.include "mm2r.inc"
 
 .segment "BANKD"
 
