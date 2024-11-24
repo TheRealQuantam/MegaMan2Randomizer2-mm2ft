@@ -22,6 +22,7 @@ using MM2Randomizer.Utilities;
 
 namespace MM2Randomizer
 {
+    using static js65.Js65Callbacks;
     using AsmEngine = ClearScriptEngine;
 
     public class RandomizationContext
@@ -579,10 +580,11 @@ namespace MM2Randomizer
         private AsmEngine CreateAssemblyEngine()
         {
             AsmEngine asm = new(AssemblerOptions);
-
-            asm.Callbacks!.FileResolve = (incPath, relPath) => Task.FromResult(AsmFileResolveCallback(incPath, relPath));
-            asm.Callbacks.FileReadText = (path) => Task.FromResult(AsmFileReadTextCallback(path));
-            asm.Callbacks.FileReadBinary = (path) => Task.FromResult(AsmFileReadBinaryCallback(path));
+            asm.Callbacks = new Js65Callbacks
+            {
+                OnFileReadText = AsmFileReadTextCallback,
+                OnFileReadBinary = AsmFileReadBinaryCallback
+            };
 
             return asm;
         }
@@ -600,44 +602,30 @@ namespace MM2Randomizer
             File.WriteAllBytes(TEMPORARY_FILE_NAME, rom);
         }
 
-        private string AsmFileResolveCallback(string incPath, string relPath)
+        private string AsmFileReadTextCallback(string basePath, string path)
         {
-            if (incPath == "")
+            if (basePath == "")
             {
-                if (SpecialAsmPaths.Contains(relPath))
-                    return relPath;
-
-                //// TODO: Support loading other include files
+                if (path == "mm2r.inc")
+                    return string.Join(
+                        "\n", DefineSymbolLines.Append(AsmIncBase));
             }
 
-#nullable disable
-            return null;
-#nullable restore
+            throw new FileNotFoundException();
         }
 
-        private string AsmFileReadTextCallback(string path)
+        private byte[] AsmFileReadBinaryCallback(string basePath, string path)
         {
-            if (path == "mm2r.inc")
-                return string.Join(
-                    "\n", DefineSymbolLines.Append(AsmIncBase));
-            else
-#nullable disable
-                //// TODO: Support loading other include files
-                return null;
-#nullable restore
-        }
+            if (basePath == "")
+            {
+                if (path == "original.nes")
+                    return File.ReadAllBytes(Settings.RomSourcePath);
+                //// Not sure this is a good idea
+                else if (path == "prepatch.nes")
+                    return File.ReadAllBytes(TEMPORARY_FILE_NAME);
+            }
 
-        private byte[] AsmFileReadBinaryCallback(string path)
-        {
-            if (path == "original.nes")
-                return File.ReadAllBytes(Settings.RomSourcePath);
-            //// Not sure this is a good idea
-            else if (path == "prepatch.nes")
-                return File.ReadAllBytes(TEMPORARY_FILE_NAME);
-            else
-#nullable disable
-                return null;
-#nullable restore
+            throw new FileNotFoundException();
         }
 
         public AsmModule AsmModuleFromResource(

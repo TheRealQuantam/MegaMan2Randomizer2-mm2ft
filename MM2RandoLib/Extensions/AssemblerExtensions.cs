@@ -9,17 +9,7 @@ namespace MM2Randomizer.Extensions
     {
         public static byte[] ApplySynchronously(this Assembler asm, byte[] rom)
         {
-            var task = asm.Apply(rom);
-            try
-            {
-                task.Start();
-            }
-            catch (InvalidOperationException)
-            {
-                // Task may already be started
-                Debug.Assert(task.Status != TaskStatus.Created);
-            }
-
+            var task = Task.Run(async () => await asm.Apply(rom));
             var res = task.Result;
             Debug.Assert(res is not null);
 

@@ -26,20 +26,6 @@ jobs:
         uses: actions/setup-dotnet@v1
         with:
           dotnet-version: ${{ matrix.dotnet }}
-      - name: Install V8 on Ubuntu 
-        if: matrix.os == 'ubuntu-latest' 
-        run: | 
-          sudo apt-get update 
-          sudo apt-get install -y libv8-dev 
-      - name: Install V8 on macOS 
-        if: matrix.os == 'macos-latest' 
-        run: | 
-          brew update 
-          brew install v8 
-      - name: Install V8 on Windows 
-        if: matrix.os == 'windows-latest' 
-        run: | 
-          choco install v8
       - run: dotnet build MM2Randomizer.sln
       - run: dotnet test MM2Randomizer.sln --configuration Debug
       - run: dotnet test MM2Randomizer.sln --configuration Release

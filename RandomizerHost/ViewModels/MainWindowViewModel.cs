@@ -217,6 +217,7 @@ namespace RandomizerHost.ViewModels
             }
             catch (Exception e)
             {
+                string s = e.ToString();
                 await MessageBox.Show(in_Window, e.ToString(), "Error", MessageBox.MessageBoxButtons.Ok);
             }
         }

@@ -60,7 +60,7 @@ CheckForLethalContactDamage:
 .segment "BANKF"
 
 .org $e596
-	jsr CheckForLethalContactDamage ; Was lda IframesLeft
+	jmp CheckForLethalContactDamage ; Was lda IframesLeft
 	nop ; Was bne $e5cc
 
 	; This is all from the original game, copied to set up jump locations
