@@ -560,7 +560,7 @@ namespace MM2Randomizer
                             opdAct.RootPath,
                             opdAct.AllowNone,
                             TEMPORARY_FILE_NAME,
-                            opdAct.ApplyRebaseIps ? opdAct.RebaseIps : null);
+                            opdAct.RebaseIps is not null ? (bool)opdAct.RebaseIps : null);
                         OneIpsPerDirSelections[opt] = selFiles;
                     }
                     else

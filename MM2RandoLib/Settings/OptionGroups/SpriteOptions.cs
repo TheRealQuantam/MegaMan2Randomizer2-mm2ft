@@ -23,7 +23,7 @@ namespace MM2Randomizer.Settings.OptionGroups
         public BoolOption RandomizeItemPickupSprites { get; } = new(true);
 
         [Description("Randomize Environment Sprites")]
-        [ApplyOneIpsPerDir("SpritePatches.Environment", ApplyRebaseIps = true, RebaseIps = false)]
+        [ApplyOneIpsPerDir("SpritePatches.Environment", RebaseIps = false)]
         public BoolOption RandomizeEnvironmentSprites { get; } = new(true);
     }
 }

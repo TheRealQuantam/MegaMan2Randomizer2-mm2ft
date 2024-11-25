@@ -169,12 +169,10 @@ public sealed class ApplyOneIpsPerDirAttribute : OptionValueActionAttribute
     /// </summary>
     public bool AllowNone { get; init; } = true;
 
-    public bool ApplyRebaseIps { get; init; } = false;
-
     /// <summary>
     /// If true IPS writes to the common bank will be automatically relocated (IPS is not aware of the ROM resize), if false they will not (IPS is aware of the ROM resize). If null, IPS writes to the common bank will be rebased only if the IPS makes no writes outside the original ROM size.
     /// </summary>
-    public bool RebaseIps { get; init; } = true;
+    public object? RebaseIps { get; init; } = null;
 
     public ApplyOneIpsPerDirAttribute(string rootPath) => RootPath = rootPath;
 }
