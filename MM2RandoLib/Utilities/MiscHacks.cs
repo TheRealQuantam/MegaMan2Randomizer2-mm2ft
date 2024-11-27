@@ -255,15 +255,6 @@ namespace MM2Randomizer.Utilities
             }
         }
 
-        // TODO;
-        public static void FixWeaponLetters(Patch Patch, RWeaponGet randomWeaponGet, RStages randomStages, RText rText)
-        {
-            Dictionary<EWeaponIndex, EWeaponIndex> shuffledWeapons = randomWeaponGet
-                .GetShuffleIndexPermutation()
-                .ToDictionary(x => x.Key.ToWeaponIndex(), x => x.Value.ToWeaponIndex());
-            rText.FixWeaponLetters(Patch, shuffledWeapons);
-        }
-
         /// <summary>
         /// Load the IPS for the specified Mega Man player sprite, or null if the specified sprite is the default. Throws FileNotFoundException if the sprite cannot be found (should never happen).
         /// </summary>
