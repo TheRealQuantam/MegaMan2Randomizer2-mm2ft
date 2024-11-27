@@ -8,6 +8,7 @@ namespace MM2Randomizer.Settings.OptionGroups
     public class CosmeticOptions : OptionGroup
     {
         [Description("Randomize Color Palettes")]
+        [DefineSymbol("RANDOMIZE_COLOR_PALETTES")] // Needed in Options.disable_flashing.asm
         public BoolOption RandomizeColorPalettes { get; } = new(true);
 
         [Description("Randomize Music Tracks")]
@@ -20,6 +21,7 @@ namespace MM2Randomizer.Settings.OptionGroups
         public BoolOption RandomizeInGameText { get; } = new(true);
 
         [Description("Randomize Menus and Transition Screens")]
+        [ApplyOneIpsPerDir("SpritePatches.MenusAndTransitionScreens")]
         public BoolOption RandomizeMenusAndTransitionScreens { get; } = new(true);
 
         [Description("Character")]

@@ -7,9 +7,9 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "MM2RandoLib", "MM2RandoLib\
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "RandomizerHost", "RandomizerHost\RandomizerHost.csproj", "{38EECF7E-6242-4407-9D3B-6B8CAC414C44}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "FtRandoLib", "FtRandoLib\FtRandoLib.csproj", "{B2DD3A1D-E34D-4C33-BC89-616FE57DCF7A}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "FtRandoLib", "FtRandoLib\FtRandoLib.csproj", "{B2DD3A1D-E34D-4C33-BC89-616FE57DCF7A}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MM2RandoLib.Tests", "tests\MM2RandoLib.Tests\MM2RandoLib.Tests.csproj", "{9ACE6FCC-17A0-4B3B-BA37-267526BEAD16}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "MM2RandoLib.Tests", "tests\MM2RandoLib.Tests\MM2RandoLib.Tests.csproj", "{9ACE6FCC-17A0-4B3B-BA37-267526BEAD16}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
