@@ -13,10 +13,12 @@
 	lda $c281, x
 	lsr a
 	ora #$a0
-	sta $420
-	inc $420
+	sta ObjFlags
+	inc ObjFlags
 
 	jmp $bcd0
+
+FREE_UNTIL $bc89
 
 ; Weapon get text
 .org $bd3a

@@ -1,3 +1,5 @@
+; When crushers hit the ground, a chain hit box object is spawned for $2b frames, then it self-destructs. This period elapses regardless of whether the crusher dies prior to the end of that period.
+
 .include "mm2r.inc"
 
 .segment "BANKE"
@@ -6,7 +8,7 @@
 	lda #PRESS_CHAIN_OBJ_ID
 	jsr SpawnPressChain ; Was jsr SpawnEnemyFromEnemy
 	
-.org $b55c ; $d bytes available
+.org $b55c
 	; 3 bytes
 	jmp PressChainObjHdlr
 	
@@ -15,26 +17,28 @@ SpawnPressChain: ; 8 bytes
 	
 	; Okay to clobber A
 	txa ; Press object index
-	sta $120, y ; Generic enemy variable of chain
+	sta EnemyVars120, y ; Generic enemy variable of chain
 	
 	rts
+
+FREE_UNTIL $b569
 	
 .reloc
 PressChainObjHdlr:
-	; X is object index ($2b)
+	; X is object index
 	; Okay to clobber A, X, Y??
 	
 	; Has the chain lifetime expired?
-	dec $4e0, x
+	dec GenObjVars, x
 	beq +
 	
 	; Does the press still exist?
-	ldy $110, x
-	lda $420, y
+	ldy EnemyVars110, x
+	lda ObjFlags, y
 	bpl +
 	
 	; Is it still a press?
-	lda $400, y 
+	lda ObjSpriteIds, y 
 	cmp #PRESS_OBJ_ID
 	bne +
 	
@@ -44,6 +48,6 @@ PressChainObjHdlr:
 	
 +
 	; No more chain
-	lsr $420, x
+	lsr ObjFlags, x
 	
 	rts

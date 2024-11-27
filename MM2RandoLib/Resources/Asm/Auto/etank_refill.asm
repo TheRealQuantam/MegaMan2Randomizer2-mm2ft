@@ -1,3 +1,5 @@
+; Prevent e-tank use at full life and apply e-tank refill speed.
+
 .include "mm2r.inc"
 
 ; Original E-Tank Menu Command begins at 0D:9281:
@@ -30,30 +32,32 @@
 .segment "BANKD"
 
 .org $9296
-	LDA $6C0 ; Do not proceed if life is full
-	CMP #$1C
+	LDA ObjHitPoints ; Do not proceed if life is full
+	CMP #MAX_ENERGY
 	BEQ $9274
 
-	DEC $A7 ; Decrement e-tanks
+	DEC NumEtanks ; Decrement e-tanks
 
 -
-	LDA $1C ; 929F: Load frame counter
+	LDA FrameCtr
 	AND #ETANK_REFILL_SPEED_MASK
 	JSR EtankIncreaseHealth ; Call code that wouldn't fit here
 
-	JSR $9396 ; Do mostly ordinary stuff
+	JSR $9396 ; Draw the screen normally
 	JSR WaitForNmiOutOfGame
 
-	LDA $6C0 ; If life not full loop, else done
-	CMP #$1C
+	LDA ObjHitPoints ; If life not full loop, else done
+	CMP #MAX_ENERGY
 	BEQ $9274
 	JMP -
+
+FREE_UNTIL $92b6
 
 .reloc
 EtankIncreaseHealth:
 	BNE + ; Skip life increase if nonzero
 
-	INC $6C0 ; Increase life
+	INC ObjHitPoints
 
 	LDA #ENERGY_FILL_SFX_ID
 	JMP EnqueueSound

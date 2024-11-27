@@ -38,11 +38,24 @@ MIRROR_HORIZONTAL = 1
 
 ;;;;;;;;;; Global variables and constants
 
+FrameCtr = $1c
 LevelIdx = $2a
 CurObjIdx = $2b
 IframesLeft = $4b
 WpnsAcquiredMask = $9a
 ItemsAcquiredMask = $9b
+NumEtanks = $a7
+
+EnemyVars110 = $110
+EnemyVars120 = $120
+ObjSpriteIds = $400
+ObjFlags = $420
+GenObjVars = $4e0
+ObjAnimVars = $680
+ObjFrameCtrs = $6a0
+ObjHitPoints = $6c0
+
+MAX_ENERGY = $1c
 
 ; Object IDs
 

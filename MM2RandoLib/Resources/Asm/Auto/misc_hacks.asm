@@ -5,12 +5,12 @@
 ; Disable refight boss music
 .segment "BANKB"
 .org $a060
-	NO_OP 3
+	NO_OP 3 ; Was jsr EnqueueSound (stop music)
 .segment "BANKE"
 .org $83ca
-	NO_OP 3
+	NO_OP 3 ; Was jsr EnqueueSound (start boss music)
 .org $847a
-	NO_OP 3
+	NO_OP 3 ; Was jsr EnqueueSound (restart stage music)
 	
 .segment "BANKE"
 
@@ -26,7 +26,7 @@
 
 ; Preserve e-tanks on game over
 .org $c1bc
-	NO_OP 2
+	NO_OP 2 ; Was sta NumEtanks
 
 ; Woodman's Leaf Shield Attack Nerf
 .org $ed5c + $61

@@ -1,23 +1,16 @@
+; Normally MM2 rejects pause when weapons/items are on the screen. Allow pausing at any time by deleting any weapons/items on the screen on pause.
+
 .include "mm2r.inc"
 
 .segment "BANKE"
 
 .reloc
-DeleteBullets:
-	lda $42f
-	bpl +
-
-	; Return to caller of caller
-	pla
-	pla
-
-	rts
-
-+
+DeleteBullets: 
+	; Delete objects 2-$f
 	ldx #$e
 
 -
-	lsr $421, x
+	lsr ObjFlags + 1, x
 	dex
 	bne -
 	
@@ -26,6 +19,8 @@ DeleteBullets:
 .segment "BANKF"
 
 .org $c573
+	; Part of the pause handler
+
 	jsr DeleteBullets
 
 	; Delete platforms
@@ -36,3 +31,5 @@ DeleteBullets:
 	sta $5a0, x
 	dex
 	bpl -
+
+FREE_UNTIL $c57f

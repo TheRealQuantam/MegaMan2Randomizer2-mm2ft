@@ -1,26 +1,19 @@
+; Ignore iframes for instant kill mechanics
+
 .include "mm2r.inc"
 
 .segment "BANKB"
 
 .org $a564
-	nop ; Was lda 02 E5 74
-	nop ; Was bne $a59c
-	nop
-	nop
+	NO_OP 4 ; Was lda IframesLeft, bne $a59c
 
 .segment "BANKE"
 
 .org $8a5a
-	nop ; Was ldy IframesLeft
-	nop ; Was bne $8a65
-	nop
-	nop
+	NO_OP 4 ; Was ldy IframesLeft, bne $8a65
 
 .org $8cbe
-	nop ; Was ldy IframesLeft
-	nop ; Was bne $8cc9
-	nop
-	nop
+	NO_OP 4 ; Was ldy IframesLeft, bne $8cc9
 
 .org $9e4b
 	jmp CheckLaserContact ; Was lda IframesLeft
@@ -49,7 +42,7 @@ CheckForLethalContactDamage:
 
 +
 	lda EnemyContactDamageTable, y
-	cmp #$1c
+	cmp #MAX_ENERGY
 	bcs +
 
 	rts
@@ -66,10 +59,12 @@ CheckForLethalContactDamage:
 	; This is all from the original game, copied to set up jump locations
 ApplyContactDamage: ; e59a
 	sec
-	lda $6c0
+	lda ObjHitPoints
 	sbc EnemyContactDamageTable, y
-	sta $6c0
+	sta ObjHitPoints
 	beq LethalContactDamage
 	bcs $e5b2
 
 LethalContactDamage: ; e5a8
+
+.assert * = $e5a8

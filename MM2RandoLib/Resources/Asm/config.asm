@@ -1,5 +1,7 @@
 .macpack common
 
+; Setup the ROM segments and layout. Because the game views the banks as being $4000 bytes, make the original banks 0-F $4000 bytes, and the expanded banks $2000 bytes. However, to allow some changes to be used on either an unmodified ROM or the expanded ROM, call the last bank BANKF, and have the expanded banks be 1e-3d.
+
 .segment "HEADER" :bank $00 :size $0010 :mem $0000 :off $00000
 
 .segment "BANK0"  :bank $00 :size $4000 :mem $8000 :off $00010
@@ -54,6 +56,8 @@
 
 .segment "BANKF"  :bank $0f :size $4000 :mem $c000 :off $7c010
 
+; Specify the unused spaces in the ROM the assembler can put code in
+
 FREE "BANKA" [$bb5e, $c000) ; $4a2 bytes
 FREE "BANKB" [$aaaf, $adff] ; $351 bytes
 FREE "BANKC" [$9300, $a000) ; $d00 bytes
@@ -66,12 +70,12 @@ FREE "BANKE" [$be4f, $c000) ; $1b1 bytes
 FREE "BANKF" [$ca16, $cb0b] ; $f6 bytes
 FREE "BANKF" [$d0d7, $d0f4] ; $1e bytes
 FREE "BANKF" [$d192, $d1de] ; $4d bytes
-; f300:f900 is reserved for DPCM
+; f:f300:f900 is reserved for DPCM
 FREE "BANKF" [$ff87, $ffe0) ; $59 bytes
 
 FREE "BANK1E" [$9a00, $a000) ; $600 bytes
 FREE "BANK1F" [$9100, $9600) ; $584 bytes
 
-; 9600:a000 are used by duplicate Wily tilesets
+; 1f:9600:a000 are used by duplicate Wily tilesets
 
 ; Banks $20:3e are currently reserved for mm2ft
