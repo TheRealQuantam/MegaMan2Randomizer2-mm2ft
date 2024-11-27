@@ -331,8 +331,10 @@ namespace MM2Randomizer.Randomizers
             in_Patch.Add(0x07DF64, (Byte)reverseY, "(W) | Launch Y-Direction");
 
             //0x03DF72 - W ammo usage (3) (do from 1 to 3)
+            //0x03DB05 - Ammo check before deployment
             Int32 ammoUse = in_Seed.NextInt32(0x03) + 0x01;
             in_Patch.Add(0x07DF72, (Byte)ammoUse, "(W) | Ammo Usage");
+            in_Patch.Add(0x07DB05, (Byte)ammoUse, "(W) | Ammo Check");
             AmmoUsage.Add(EWeaponIndex.Wood, ammoUse);
 
             //0x03DF7D - W y - speed(04)
