@@ -32,6 +32,7 @@
 .segment "BANKD"
 
 .org $9296
+UseEtank:
 	LDA ObjHitPoints ; Do not proceed if life is full
 	CMP #MAX_ENERGY
 	BEQ $9274
@@ -40,6 +41,7 @@
 
 .if ETANK_REFILL_SPEED_MASK = $ff
 
+	; Instantly refill
 	lda #MAX_ENERGY
 	sta ObjHitPoints
 
@@ -53,6 +55,7 @@ FREE_UNTIL $92b6
 .else
 
 -
+	; Normal refill
 	LDA FrameCtr
 	AND #ETANK_REFILL_SPEED_MASK
 	JSR EtankIncreaseHealth ; Call code that wouldn't fit here
@@ -85,6 +88,7 @@ EtankIncreaseHealth:
 
 .if HEALTH_REFILL_SPEED_MASK = $ff
 
+; Instant refill
 .org $82f2
 PickupHealth:
 	; A = amount to increase life by
@@ -114,6 +118,7 @@ FREE_UNTIL $8327
 
 .else
 
+; Normal refill
 .org $830a
 	and #HEALTH_REFILL_SPEED_MASK
 
@@ -121,6 +126,7 @@ FREE_UNTIL $8327
 	
 .if ENERGY_REFILL_SPEED_MASK = $ff
 
+; Instant refill
 .org $832d
 PickupEnergy:
 	; A = amount to increase energy by
@@ -154,6 +160,7 @@ FREE_UNTIL $8361
 
 .else
 
+; Normal refill
 .org $8349
 	and #ENERGY_REFILL_SPEED_MASK
 
