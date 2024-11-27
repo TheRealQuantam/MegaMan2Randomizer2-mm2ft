@@ -316,12 +316,6 @@ namespace MM2Randomizer
                     this.RandomStages,
                     gameplayOpts.RandomizeSpecialWeaponReward.Value,
                     this.RandomWeaponGet);
-
-                MiscHacks.FixWeaponLetters(
-                    this.Patch,
-                    this.RandomWeaponGet,
-                    this.RandomStages,
-                    this.RandomInGameText);
             }
 
             // Apply final optional gameplay modifications
