@@ -11,7 +11,17 @@ namespace MM2Randomizer.Randomizers
     public class RWeaponBehavior : IRandomizer
     {
         // Buster Heat Air Wood Bubble Quick Metal Crash
-        private static IDictionary<EWeaponIndex, Double> AmmoUsage = new Dictionary<EWeaponIndex, Double>();
+        private static IDictionary<EWeaponIndex, Double> AmmoUsage = new Dictionary<EWeaponIndex, Double>()
+        {
+            { EWeaponIndex.Buster, 0 },
+            { EWeaponIndex.Heat, 10 },
+            { EWeaponIndex.Air, 2 },
+            { EWeaponIndex.Wood, 3 },
+            { EWeaponIndex.Bubble, 1.0/2 },
+            { EWeaponIndex.Quick, 1.0/8 },
+            { EWeaponIndex.Metal, 1.0/4 },
+            { EWeaponIndex.Crash, 4 },
+        };
 
         public static Double GetAmmoUsage(EWeaponIndex weapon)
         {

@@ -726,38 +726,49 @@ namespace MM2Randomizer.Randomizers
 
                 }
 
-                // Remove Barrier weakness from list first (therefore, different Boobeam weakness)
-                // At this point we removed:
-                //   * heat (if it's expensive)
-                //   * flash
-                //   * the barrier weakness
-                dmgBarrierList.Remove(rBarrierWeakness);
-
-                // Get Boobeam weakness
-                KeyValuePair<EWeaponIndex, EDmgVsEnemy> wpnBoobeam = in_Seed.NextElement(dmgBarrierList);
-
-                // Add Barrier weakness back to list for counting later
-                // Now flash and possibly heat are the only weapons missing
-                dmgBarrierList.Add(rBarrierWeakness, wpnBarrier);
-
-                // Scale damage to be slightly more capable than killing 5 buebeams at full ammo
-                dmgW4 = 0x01;
-                if (wpnBoobeam.Value != EDmgVsEnemy.DamageP)
+                bool foundWpn = false;
+                KeyValuePair<EWeaponIndex, EDmgVsEnemy> wpnBoobeam = new();
+                while (!foundWpn)
                 {
-                    Int32 totalShots = (Int32)(28 / RWeaponBehavior.GetAmmoUsage(wpnBoobeam.Value.Index));
-                    Int32 numHitsPerBoobeam = (Int32)(totalShots / 5);
+                    // Remove Barrier weakness from list first (therefore, different Boobeam weakness)
+                    // At this point we removed:
+                    //   * heat (if it's expensive)
+                    //   * flash
+                    //   * the barrier weakness
+                    dmgBarrierList.Remove(rBarrierWeakness);
 
-                    if (numHitsPerBoobeam > 1)
+                    // Get Boobeam weakness
+                    wpnBoobeam = in_Seed.NextElement(dmgBarrierList);
+
+                    // Add Barrier weakness back to list for counting later
+                    // Now flash and possibly heat are the only weapons missing
+                    dmgBarrierList.Add(rBarrierWeakness, wpnBarrier);
+
+                    // Scale damage to be slightly more capable than killing 5 buebeams at full ammo
+                    dmgW4 = 0x01;
+                    if (wpnBoobeam.Value != EDmgVsEnemy.DamageP)
                     {
-                        numHitsPerBoobeam--;
+                        Double wpnCost = RWeaponBehavior.GetAmmoUsage(wpnBoobeam.Value.Index);
+                        Int32 totalShots = (Int32)(28 / wpnCost);
+                        if (wpnCost < 0.01 || totalShots == 0)
+                            continue;
+
+                        Int32 numHitsPerBoobeam = (Int32)(totalShots / 5);
+
+                        if (numHitsPerBoobeam > 1)
+                        {
+                            numHitsPerBoobeam--;
+                        }
+
+                        if (numHitsPerBoobeam > 8)
+                        {
+                            numHitsPerBoobeam = 8;
+                        }
+
+                        dmgW4 = (Int32)Math.Ceiling(20d / numHitsPerBoobeam);
                     }
 
-                    if (numHitsPerBoobeam > 8)
-                    {
-                        numHitsPerBoobeam = 8;
-                    }
-
-                    dmgW4 = (Int32)Math.Ceiling(20d / numHitsPerBoobeam);
+                    foundWpn = true;
                 }
 
                 // Add Boobeam damage values to patch, as well as array for use by Text and other modules later
