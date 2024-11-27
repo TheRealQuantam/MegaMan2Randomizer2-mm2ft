@@ -308,13 +308,13 @@ namespace MM2Randomizer
 
             // Apply additional required incidental modifications
             if (gameplayOpts.RandomizeRobotMasterStageSelection.Value ||
-                cosmOpts.RandomizeInGameText.Value)
+                gameplayOpts.RandomizeSpecialWeaponReward.Value)
             {
                 MiscHacks.FixPortraits(
                     this.Patch,
                     gameplayOpts.RandomizeRobotMasterStageSelection.Value,
                     this.RandomStages,
-                    cosmOpts.RandomizeInGameText.Value,
+                    gameplayOpts.RandomizeSpecialWeaponReward.Value,
                     this.RandomWeaponGet);
 
                 MiscHacks.FixWeaponLetters(
