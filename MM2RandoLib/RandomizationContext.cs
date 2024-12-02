@@ -325,14 +325,6 @@ namespace MM2Randomizer
             }
 
             // Apply final optional gameplay modifications
-            MiscHacks.SetHitPointChargingSpeed(
-                this.Patch,
-                chargingOpts.HitPoints.Value);
-
-            MiscHacks.SetWeaponEnergyChargingSpeed(
-                this.Patch,
-                chargingOpts.WeaponEnergy.Value);
-
             MiscHacks.DrawTitleScreenChanges(this.Patch, this.Seed.Identifier, this.Settings);
 
             MiscHacks.SetNewMegaManSprite(

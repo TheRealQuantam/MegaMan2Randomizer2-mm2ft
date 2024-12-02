@@ -32,13 +32,30 @@
 .segment "BANKD"
 
 .org $9296
+UseEtank:
 	LDA ObjHitPoints ; Do not proceed if life is full
 	CMP #MAX_ENERGY
 	BEQ $9274
 
-	DEC NumEtanks ; Decrement e-tanks
+	DEC NumEtanks
+
+.if ETANK_REFILL_SPEED_MASK = $ff
+
+	; Instantly refill
+	lda #MAX_ENERGY
+	sta ObjHitPoints
+
+	lda #ENERGY_FILL_SFX_ID
+	jsr EnqueueSound
+
+	jmp $9274
+
+FREE_UNTIL $92b6
+
+.else
 
 -
+	; Normal refill
 	LDA FrameCtr
 	AND #ETANK_REFILL_SPEED_MASK
 	JSR EtankIncreaseHealth ; Call code that wouldn't fit here
@@ -63,4 +80,88 @@ EtankIncreaseHealth:
 	JMP EnqueueSound
 
 +
-	RTS ; BF87
+	RTS
+
+.endif
+
+.segment "BANKE"
+
+.if HEALTH_REFILL_SPEED_MASK = $ff
+
+; Instant refill
+.org $82f2
+PickupHealth:
+	; A = amount to increase life by
+	sta Temp
+	
+	lda ObjHitPoints
+	cmp #MAX_ENERGY
+	bcs @Done
+
+	clc
+	adc Temp
+	cmp #MAX_ENERGY
+	bcc @NoOverflow
+
+	lda #MAX_ENERGY
+
+@NoOverflow:
+	sta ObjHitPoints
+
+	lda #ENERGY_FILL_SFX_ID
+	jsr EnqueueSound
+
+@Done:
+	rts
+
+FREE_UNTIL $8327
+
+.else
+
+; Normal refill
+.org $830a
+	and #HEALTH_REFILL_SPEED_MASK
+
+.endif
+	
+.if ENERGY_REFILL_SPEED_MASK = $ff
+
+; Instant refill
+.org $832d
+PickupEnergy:
+	; A = amount to increase energy by
+	sta Temp
+	
+	ldx CurItemIdx
+	beq @Done
+	
+	dex
+	lda ItemEnergies, x
+	cmp #MAX_ENERGY
+	bcs @Done
+	
+	clc
+	adc Temp
+	cmp #MAX_ENERGY
+	bcc @NoOverflow
+	
+	lda #MAX_ENERGY
+	
+@NoOverflow:
+	sta ItemEnergies, x
+	
+	lda #ENERGY_FILL_SFX_ID
+	jsr EnqueueSound
+	
+@Done:
+	rts
+
+FREE_UNTIL $8361
+
+.else
+
+; Normal refill
+.org $8349
+	and #ENERGY_REFILL_SPEED_MASK
+
+.endif
