@@ -405,28 +405,6 @@ namespace MM2Randomizer.Randomizers
         }
 
 
-
-        public void FixWeaponLetters(Patch in_Patch, Dictionary<EWeaponIndex, EWeaponIndex> in_Permutation)
-        {
-            // Re-order the pause screen letters to match the ordering
-            // of the shuffled weapons
-            //
-            // TODO: This is done so poorly. Need to think about how to achieve
-            // this without the depencendy of on other randomizers
-
-            foreach (EWeaponIndex i in EWeaponIndex.SpecialWeapons)
-            {
-                Byte[] pauseLetterBytes = this.mNewWeaponLetters[i].AsPauseScreenString();
-
-                Int32 wpnLetterAddress = PauseScreenWpnAddress[in_Permutation[i]];
-
-                for (Int32 j = 0; j < pauseLetterBytes.Length; j++)
-                {
-                    in_Patch.Add(wpnLetterAddress + j, pauseLetterBytes[j], $"Pause menu weapon letter GFX for \'{this.mNewWeaponLetters[i]}\', Byte #{j}");
-                }
-            }
-        }
-
         private static Char GetBossWeaknessDamageChar(Int32 dmg)
         {
             Char c;
