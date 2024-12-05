@@ -58,6 +58,7 @@ ObjAnimVars = $680
 ObjFrameCtrs = $6a0
 ObjHitPoints = $6c0
 
+NUM_ITEMS = $b
 MAX_ENERGY = $1c
 
 ; Object IDs
@@ -86,6 +87,7 @@ DrawTitleLogoSprites = $a60f ; Bank d
 
 WaitForNmiOutOfGame = $c0ab
 EnqueueSound = $c051
+LoadStageTileset = $c45d
 SpawnEnemyFromEnemy = $f159
 
 ; Macros
