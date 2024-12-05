@@ -39,6 +39,7 @@ MIRROR_HORIZONTAL = 1
 ;;;;;;;;;; Global variables and constants
 
 FrameCtr = $1c
+CtrlState = $23
 LevelIdx = $2a
 CurObjIdx = $2b
 IframesLeft = $4b

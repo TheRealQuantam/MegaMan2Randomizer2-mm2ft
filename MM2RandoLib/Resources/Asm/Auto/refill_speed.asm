@@ -33,8 +33,13 @@
 
 .org $9296
 UseEtank:
+.if ETANK_PROTECTION_LEVEL <> MAX_ENERGY
+	jsr ShouldUseEtank
+.else
 	LDA ObjHitPoints ; Do not proceed if life is full
 	CMP #MAX_ENERGY
+.endif
+
 	BEQ $9274
 
 	DEC NumEtanks
@@ -81,6 +86,25 @@ EtankIncreaseHealth:
 
 +
 	RTS
+
+.endif
+
+.if ETANK_PROTECTION_LEVEL <> MAX_ENERGY
+
+.reloc
+ShouldUseEtank: ; Returns Z if no
+	lda ObjHitPoints
+	cmp #MAX_ENERGY
+	beq @Done ; Z: no
+
+	cmp #ETANK_PROTECTION_LEVEL
+	bcc @Done ; !Z: yes
+
+	lda CtrlState
+	and #$4 ; Select is pressed
+
+@Done:
+	rts
 
 .endif
 
