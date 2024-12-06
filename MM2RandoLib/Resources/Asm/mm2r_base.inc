@@ -42,6 +42,7 @@ FrameCtr = $1c
 CtrlState = $23
 LevelIdx = $2a
 CurObjIdx = $2b
+MmState = $2c
 IframesLeft = $4b
 WpnsAcquiredMask = $9a
 ItemsAcquiredMask = $9b
@@ -88,7 +89,9 @@ DrawTitleLogoSprites = $a60f ; Bank d
 
 WaitForNmiOutOfGame = $c0ab
 EnqueueSound = $c051
+DoDeath = $c10b
 LoadStageTileset = $c45d
+DoPauseScreen = $c573
 SpawnEnemyFromEnemy = $f159
 
 ; Macros
