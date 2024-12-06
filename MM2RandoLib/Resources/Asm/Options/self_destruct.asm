@@ -7,7 +7,7 @@
 
 .reloc
 PatchDoPauseScreen:
-	; Okay to clobber A, X, Y?
+	; Okay to clobber A, X (Y??)
 	lda CtrlState
 	eor #$ff
 	and #$11 ; = 0 if Up and A are held
